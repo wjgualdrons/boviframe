@@ -49,6 +49,7 @@ dependencies:
   firebase_auth_web: ^5.14.3
   firebase_storage: ^12.4.6
   path_provider: ^2.1.5
+  sqflite: ^2.2.8
   fl_chart: ^0.63.0
   hive: ^2.2.3
   hive_flutter: ^1.1.0
@@ -125,6 +126,7 @@ flutter:
     - assets/icons/logo3.png
     - assets/img/vaca.jpg
     - assets/icons/logoapp3.png
+    - db/schema.sqlite.sql
 
 
   # An image asset can refer to one or more resolution-specific "variants", see
