@@ -34,3 +34,23 @@ Notas:
   una estrategia multitenant (esquema por usuario o DB dedicada) e incluir
   migraciones centralizadas.
 
+## Generar instalable Android (release)
+
+Pasos rápidos para crear APK/AAB release en Android (requiere Flutter en PATH):
+
+1. Preparar keystore (solo la primera vez):
+   - keytool -genkey -v -keystore ~/bovikey.jks -alias boviframe -keyalg RSA -keysize 2048 -validity 10000
+   - Guarda el keystore fuera del repositorio y crea android/key.properties con las credenciales.
+2. Configura signingConfig en android/app/build.gradle (plantilla Flutter estándar).
+3. En la raíz del proyecto ejecutar (Linux/macOS):
+   - ./scripts/build_android.sh
+   o PowerShell (Windows):
+   - .\scripts\build_android.ps1
+4. Archivos generados:
+   - APK: build/app/outputs/flutter-apk/app-release.apk
+   - AAB: build/app/outputs/bundle/release/app-release.aab
+5. Instalar APK en dispositivo (requiere adb):
+   - adb install -r build/app/outputs/flutter-apk/app-release.apk
+
+Nota: No subas el keystore ni credenciales al repositorio. Para CI/CD recomendamos crear un workflow que firme y publique automáticamente a Play Console.
+
