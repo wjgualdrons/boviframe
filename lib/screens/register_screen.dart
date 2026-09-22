@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:boviframe/services/auth_service.dart';
 import 'login_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../data/user_database.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({Key? key}) : super(key: key);
@@ -120,81 +122,102 @@ class _RegisterScreenState extends State<RegisterScreen>
     setState(() => _isLoading = false);
 
     if (result.user != null) {
-      await result.user!.sendEmailVerification();
-      if (!mounted) return;
+          // Send verification email
+          try {
+            await result.user!.sendEmailVerification();
+          } catch (e) {
+            // ignore
+          }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            '¡Registro exitoso! Revisa tu correo para verificar tu cuenta.',
-          ),
-          backgroundColor: Colors.green,
-        ),
-      );
+          // Initialize per-user local DB (non-blocking for UX)
+          try {
+            final uid = result.user!.uid;
+            // store user id locally for app usage
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('user_id', uid);
 
-      await Future.delayed(const Duration(milliseconds: 500));
-      if (!mounted) return;
-      _showSuccessDialog();
+            // initialize sqlite DB for this user
+            await UserDatabase.initUserDatabase(uid);
+          } catch (e) {
+            // Log but don't block user flow
+            // ignore: avoid_print
+            print('Warning: user DB initialization failed: $e');
+          }
 
-      showDialog(
-        context: context,
-        builder:
-            (_) => AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
+          if (!mounted) return;
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                '¡Registro exitoso! Revisa tu correo para verificar tu cuenta.',
               ),
-              title: const Row(
-                children: [
-                  Icon(Icons.mark_email_read_rounded, color: Colors.blue),
-                  SizedBox(width: 8),
-                  Expanded(child: Text('¡Correo enviado!')),
-                ],
-              ),
-              content: const Text(
-                'Te enviamos un enlace de verificación a tu correo electrónico. Haz clic en él para activar tu cuenta.',
-              ),
-              actions: [
-                TextButton.icon(
-                  icon: const Icon(Icons.login, color: Colors.blue),
-                  label: const Text(
-                    'Ir a login',
-                    style: TextStyle(color: Colors.blue),
-                  ),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    Navigator.of(context).pushReplacementNamed('/login');
-                    Navigator.of(context).push(
-                      PageRouteBuilder(
-                        pageBuilder:
-                            (context, animation, secondaryAnimation) =>
-                                const LoginScreen(),
-                        transitionsBuilder: (
-                          context,
-                          animation,
-                          secondaryAnimation,
-                          child,
-                        ) {
-                          const begin = Offset(1.0, 0.0);
-                          const end = Offset.zero;
-                          const curve = Curves.ease;
-
-                          final tween = Tween(
-                            begin: begin,
-                            end: end,
-                          ).chain(CurveTween(curve: curve));
-                          return SlideTransition(
-                            position: animation.drive(tween),
-                            child: child,
-                          );
-                        },
-                      ),
-                    );
-                  },
-                ),
-              ],
+              backgroundColor: Colors.green,
             ),
-      );
-    } else {
+          );
+
+          await Future.delayed(const Duration(milliseconds: 500));
+          if (!mounted) return;
+          _showSuccessDialog();
+
+          showDialog(
+            context: context,
+            builder:
+                (_) => AlertDialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  title: const Row(
+                    children: [
+                      Icon(Icons.mark_email_read_rounded, color: Colors.blue),
+                      SizedBox(width: 8),
+                      Expanded(child: Text('¡Correo enviado!')),
+                    ],
+                  ),
+                  content: const Text(
+                    'Te enviamos un enlace de verificación a tu correo electrónico. Haz clic en él para activar tu cuenta.',
+                  ),
+                  actions: [
+                    TextButton.icon(
+                      icon: const Icon(Icons.login, color: Colors.blue),
+                      label: const Text(
+                        'Ir a login',
+                        style: TextStyle(color: Colors.blue),
+                      ),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        Navigator.of(context).pushReplacementNamed('/login');
+                        Navigator.of(context).push(
+                          PageRouteBuilder(
+                            pageBuilder:
+                                (context, animation, secondaryAnimation) =>
+                                    const LoginScreen(),
+                            transitionsBuilder: (
+                              context,
+                              animation,
+                              secondaryAnimation,
+                              child,
+                            ) {
+                              const begin = Offset(1.0, 0.0);
+                              const end = Offset.zero;
+                              const curve = Curves.ease;
+
+                              final tween = Tween(
+                                begin: begin,
+                                end: end,
+                              ).chain(CurveTween(curve: curve));
+                              return SlideTransition(
+                                position: animation.drive(tween),
+                                child: child,
+                              );
+                            },
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+          );
+        } else {
       setState(() {
         _errorMessage = result.errorMessage ?? 'Error desconocido';
       });
