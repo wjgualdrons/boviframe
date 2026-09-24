@@ -1,0 +1,25 @@
+{
+  "name": "boviframe",
+  "version": "1.0.0",
+  "description": "Boviframe Flutter Web Application",
+  "scripts": {
+    "build": "flutter build web --release",
+    "dev": "flutter run -d chrome",
+    "get": "flutter pub get",
+    "clean": "flutter clean"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AlejandroMendoza334/boviframe.git"
+  },
+  "keywords": ["flutter", "web", "boviframe"],
+  "author": "",
+  "license": "ISC",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "bugs": {
+    "url": "https://github.com/AlejandroMendoza334/boviframe/issues"
+  },
+  "homepage": "https://github.com/AlejandroMendoza334/boviframe#readme"
+}

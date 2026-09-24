@@ -1,0 +1,54 @@
+flowchart TD
+  Splash[Splash] --> Login[Login]
+  Login --> Register[Registro]
+  Login --> Forgot[Recuperar contrase?a]
+  Login --> Main[Men? principal]
+  Main --> Dashboard[Dashboard / estad?sticas]
+  Main --> Consulta[Consulta]
+  Main --> Epmuras[EPMURAS]
+  Main --> Settings[Ajustes]
+  Main --> Index[?ndice]
+  Index --> Theory[Bases te?ricas]
+  Main --> NewsPublic[Noticias p?blicas]
+  NewsPublic --> NewsDetail[Detalle de noticia]
+  Main --> NewsAdmin[Administrar noticias]
+  NewsAdmin --> NewsCreate[Crear noticia]
+  NewsAdmin --> NewsEdit[Editar noticia]
+  NewsDetail --> External[WebView externo]
+  Consulta --> Farm[Consulta de fincas]
+  Consulta --> Animals[Consulta de animales]
+  Farm --> Sessions[Sesiones de una finca]
+  Sessions --> AnimalDetail[Detalle de animal]
+  Animals --> AnimalDetail
+  Epmuras --> NewSession[Nueva sesi?n]
+  Epmuras --> EditSelector[Seleccionar sesi?n a editar]
+  Epmuras --> Saved[Sesiones guardadas]
+  NewSession --> Producer[Datos del productor]
+  NewSession --> Evaluation[Evaluaci?n animal]
+  Producer --> Evaluation
+  Evaluation --> Summary[Resumen de sesi?n]
+  Evaluation --> AnimalDetail
+  Evaluation --> Chart[Gr?fico comparativo EPMURAS]
+  Summary --> Report[Reporte certificado]
+  Summary --> Export[Exportar resumen grupal PDF]
+  EditSelector --> EditSession[Editar sesi?n]
+  EditSession --> EditProducer[Editar productor]
+  EditSession --> Evaluation
+  Settings --> EditFarm[Editar finca]
+  Main --> Admin[Administraci?n de noticias]
+  Admin --> NewsCreate
+  Admin --> NewsEdit
+  subgraph LocalDB[Hive local por usuario autenticado]
+    Profiles[(usuarios)]
+    SessionsDb[(sesiones)]
+    Producers[(datos_productor)]
+    Evaluations[(evaluaciones_animales)]
+    AnimalsDb[(animals)]
+    NewsDb[(news)]
+  end
+  Login -. uid .-> LocalDB
+  NewSession -.-> SessionsDb
+  Producer -.-> Producers
+  Evaluation -.-> Evaluations
+  Consulta -.-> LocalDB
+  Settings -.-> Profiles

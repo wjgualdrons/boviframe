@@ -1,0 +1,39 @@
+# Flutter specific
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+
+# Build outputs (except web)
+build/android/
+build/ios/
+build/linux/
+build/macos/
+build/windows/
+
+# Android
+android/
+
+# iOS
+ios/
+
+# macOS
+macos/
+
+# Linux
+linux/
+
+# Windows
+windows/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Misc
+*.log
+.DS_Store
+
