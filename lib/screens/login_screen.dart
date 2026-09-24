@@ -35,7 +35,7 @@ class _LoginScreenState extends State<LoginScreen> {
               .doc(uid)
               .get();
       if (doc.exists) {
-        final data = doc.data()!;
+        final data = doc.data() ?? <String, dynamic>{};
         final settingsProv = Provider.of<SettingsProvider>(
           context,
           listen: false,
@@ -68,7 +68,7 @@ class _LoginScreenState extends State<LoginScreen> {
         userCredential =
             await FirebaseAuth.instance.signInWithCredential(credential);
       }
-      final user = userCredential.user;
+      final user = userCredential.user ?? FirebaseAuth.instance.currentUser;
 
       if (user == null) {
         _showAlert(
@@ -503,5 +503,4 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
-
 
