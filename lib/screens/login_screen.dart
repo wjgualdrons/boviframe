@@ -51,10 +51,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _loginWithGoogle() async {
     try {
-      late final UserCredential userCredential;
       if (kIsWeb) {
         final provider = GoogleAuthProvider();
-        userCredential = await FirebaseAuth.instance.signInWithPopup(provider);
+        await FirebaseAuth.instance.signInWithPopup(provider);
       } else {
         final googleSignIn = GoogleSignIn();
         await googleSignIn.signOut();
@@ -65,12 +64,9 @@ class _LoginScreenState extends State<LoginScreen> {
           accessToken: googleAuth.accessToken,
           idToken: googleAuth.idToken,
         );
-        userCredential =
-            await FirebaseAuth.instance.signInWithCredential(credential);
+        await FirebaseAuth.instance.signInWithCredential(credential);
       }
-      final user = userCredential.user ?? FirebaseAuth.instance.currentUser;
-
-      if (user == null) {
+      if (FirebaseAuth.instance.currentUser == null) {
         _showAlert(
           icon: Icons.error_outline,
           color: Colors.red,
@@ -80,29 +76,8 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
 
-      final String email = user.email ?? '';
-
-      // Firebase Auth is the gate for navigation. Local profile persistence
-      // must not prevent a valid OAuth session from entering the app.
-      try {
-        final profile =
-            LocalFirestore.instance.collection('usuarios').doc(user.uid);
-        final profileSnapshot = await profile.get();
-        if (!profileSnapshot.exists) {
-          await profile.set({
-            'name': user.displayName ?? '',
-            'email': email,
-            'createdAt': FieldValue.serverTimestamp(),
-          });
-        }
-        await _loadUserDataIntoProvider(user.uid);
-      } catch (profileError) {
-        debugPrint('No se pudo guardar el perfil local: $profileError');
-      }
       if (!mounted) return;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.pushReplacementNamed(context, '/main_menu');
-      });
+      Navigator.pushReplacementNamed(context, '/main_menu');
     } catch (e) {
       _showAlert(
         icon: Icons.error_outline,
