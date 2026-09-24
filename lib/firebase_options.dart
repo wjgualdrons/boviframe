@@ -43,56 +43,46 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyA_p6oh21sUJAT6cRYM1h7rMxWgdaPL_54',
-    appId: '1:141125428871:web:f22303ed9b6ae200867a22',
-    messagingSenderId: '141125428871',
-    projectId: 'boviframe',
-    authDomain: 'boviframe.firebaseapp.com',
-    databaseURL: 'https://boviframe-default-rtdb.firebaseio.com',
-    storageBucket: 'boviframe.firebasestorage.app',
-    measurementId: 'G-VYRFTYTM13',
+    apiKey: 'AIzaSyB8PxRYd84l0SzK6_0nkaKyJ3mccfviHmI',
+    appId: '1:830798650861:web:fdd7adafef866b9175dbe4',
+    messagingSenderId: '830798650861',
+    projectId: 'boviframe-b5c2c',
+    authDomain: 'boviframe-b5c2c.firebaseapp.com',
+    storageBucket: 'boviframe-b5c2c.firebasestorage.app',
+    measurementId: 'G-KVZEV1BWZQ',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyCEv4Pwc9-aS0eHJp_Z-RiifBiPFxBmgMs',
-    appId: '1:141125428871:android:6794ee38ae3cdd6a867a22',
-    messagingSenderId: '141125428871',
-    projectId: 'boviframe',
-    databaseURL: 'https://boviframe-default-rtdb.firebaseio.com',
-    storageBucket: 'boviframe.firebasestorage.app',
+    apiKey: 'AIzaSyCzeMkoDFSQIOxZKrCevlyPdSEwoeTrmh0',
+    appId: '1:830798650861:android:ab96ba2ae9609a1875dbe4',
+    messagingSenderId: '830798650861',
+    projectId: 'boviframe-b5c2c',
+    storageBucket: 'boviframe-b5c2c.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyDZGVSedEIhGkv32pGBffUjylN1iCQdEVc',
-    appId: '1:141125428871:ios:40292f74fb5b049b867a22',
-    messagingSenderId: '141125428871',
-    projectId: 'boviframe',
-    databaseURL: 'https://boviframe-default-rtdb.firebaseio.com',
-    storageBucket: 'boviframe.firebasestorage.app',
-    iosClientId: '141125428871-7jfclrtqvp72khqjrbsi6qnm6fhtkuj8.apps.googleusercontent.com',
+    apiKey: 'AIzaSyDG2HHIFYHN3WVLEHdLmjmHkkuieYj4QeY',
+    appId: '1:830798650861:ios:5d377020f610896775dbe4',
+    messagingSenderId: '830798650861',
+    projectId: 'boviframe-b5c2c',
+    storageBucket: 'boviframe-b5c2c.firebasestorage.app',
     iosBundleId: 'com.example.boviframe',
   );
-
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyDZGVSedEIhGkv32pGBffUjylN1iCQdEVc',
-    appId: '1:141125428871:ios:40292f74fb5b049b867a22',
-    messagingSenderId: '141125428871',
-    projectId: 'boviframe',
-    databaseURL: 'https://boviframe-default-rtdb.firebaseio.com',
-    storageBucket: 'boviframe.firebasestorage.app',
-    iosClientId: '141125428871-7jfclrtqvp72khqjrbsi6qnm6fhtkuj8.apps.googleusercontent.com',
+    apiKey: 'AIzaSyDG2HHIFYHN3WVLEHdLmjmHkkuieYj4QeY',
+    appId: '1:830798650861:ios:5d377020f610896775dbe4',
+    messagingSenderId: '830798650861',
+    projectId: 'boviframe-b5c2c',
+    storageBucket: 'boviframe-b5c2c.firebasestorage.app',
     iosBundleId: 'com.example.boviframe',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyA_p6oh21sUJAT6cRYM1h7rMxWgdaPL_54',
-    appId: '1:141125428871:web:bf96a4801dd90f78867a22',
-    messagingSenderId: '141125428871',
-    projectId: 'boviframe',
-    authDomain: 'boviframe.firebaseapp.com',
-    databaseURL: 'https://boviframe-default-rtdb.firebaseio.com',
-    storageBucket: 'boviframe.firebasestorage.app',
-    measurementId: 'G-TEWP71MZHX',
+    apiKey: 'AIzaSyB8PxRYd84l0SzK6_0nkaKyJ3mccfviHmI',
+    appId: '1:830798650861:web:69f28e1056c5380775dbe4',
+    messagingSenderId: '830798650861',
+    projectId: 'boviframe-b5c2c',
+    authDomain: 'boviframe-b5c2c.firebaseapp.com',
+    storageBucket: 'boviframe-b5c2c.firebasestorage.app',
+    measurementId: 'G-TD1VNY4CJ6',
   );
-
 }
