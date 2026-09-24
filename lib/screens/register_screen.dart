@@ -120,13 +120,12 @@ class _RegisterScreenState extends State<RegisterScreen>
     setState(() => _isLoading = false);
 
     if (result.user != null) {
-      await result.user!.sendEmailVerification();
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Â¡Registro exitoso! Revisa tu correo para verificar tu cuenta.',
+            'Â¡Registro exitoso! Ya puedes iniciar sesiÃ³n.',
           ),
           backgroundColor: Colors.green,
         ),
@@ -151,7 +150,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                 ],
               ),
               content: const Text(
-                'Te enviamos un enlace de verificaciÃ³n a tu correo electrÃ³nico. Haz clic en Ã©l para activar tu cuenta.',
+                'Tu cuenta fue creada correctamente. Ya puedes iniciar sesiÃ³n.',
               ),
               actions: [
                 TextButton.icon(
@@ -452,6 +451,5 @@ class _RegisterScreenState extends State<RegisterScreen>
     );
   }
 }
-
 
 

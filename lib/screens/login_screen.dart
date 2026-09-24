@@ -167,20 +167,6 @@ class _LoginScreenState extends State<LoginScreen> {
       final firebaseUser = FirebaseAuth.instance.currentUser;
 
       if (firebaseUser != null) {
-        await firebaseUser.reload();
-        if (!firebaseUser.emailVerified) {
-          await FirebaseAuth.instance.signOut();
-          setState(() => _isLoading = false);
-          _showAlert(
-            icon: Icons.warning_amber_rounded,
-            color: Colors.orange,
-            title: 'VerificaciÃ³n pendiente',
-            message:
-                'Tu cuenta aÃºn no ha sido verificada. Revisa tu correo y verifica tu email antes de iniciar sesiÃ³n.',
-          );
-          return;
-        }
-
         await _loadUserDataIntoProvider(firebaseUser.uid);
         if (!mounted) return;
 
@@ -417,21 +403,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 12),
 
-                // BOTÃ“N FACEBOOK
-                ElevatedButton.icon(
-                  onPressed: _loginWithFacebook,
-                  icon: Image.asset('assets/img/facebook.png', height: 24),
-                  label: const Text('Iniciar SesiÃ³n con Facebook'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.black,
-                    minimumSize: const Size(double.infinity, 48),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: const BorderSide(color: Colors.grey),
-                    ),
-                  ),
-                ),
               ],
             ),
           ),
