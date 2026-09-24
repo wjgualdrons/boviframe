@@ -41,7 +41,7 @@ rm -rf build/web || true
 
 # Build para web
 echo "🔨 Construyendo para web..."
-flutter build web --release --base-href="/" --web-renderer canvaskit
+flutter build web --release --base-href="/"
 
 echo "✅ Build completado! Archivos en build/web/"
 if [ -d "build/web" ]; then
@@ -51,4 +51,3 @@ else
     echo "❌ Error: build/web no existe"
     exit 1
 fi
-

@@ -1,4 +1,5 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:boviframe/services/local_firestore.dart';
@@ -326,16 +327,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _reauthenticateWithGoogleAndDelete(User user) async {
     try {
-      final googleUser = await GoogleSignIn().signIn();
-      if (googleUser == null) return;
-
-      final googleAuth = await googleUser.authentication;
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-
-      await user.reauthenticateWithCredential(credential);
+      if (kIsWeb) {
+        await user.reauthenticateWithPopup(GoogleAuthProvider());
+      } else {
+        final googleUser = await GoogleSignIn().signIn();
+        if (googleUser == null) return;
+        final googleAuth = await googleUser.authentication;
+        final credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+        await user.reauthenticateWithCredential(credential);
+      }
       await user.delete();
 
       if (mounted) {
@@ -604,6 +607,5 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 }
-
 
 

@@ -1,4 +1,5 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:boviframe/services/local_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -50,23 +51,23 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _loginWithGoogle() async {
     try {
-      final GoogleSignIn googleSignIn = GoogleSignIn();
-      await googleSignIn.signOut(); // Forzar selector de cuenta
-
-      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
-      if (googleUser == null) return;
-
-      // âœ… Primero autenticarse con Firebase Auth
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-
-      final userCredential = await FirebaseAuth.instance.signInWithCredential(
-        credential,
-      );
+      late final UserCredential userCredential;
+      if (kIsWeb) {
+        final provider = GoogleAuthProvider();
+        userCredential = await FirebaseAuth.instance.signInWithPopup(provider);
+      } else {
+        final googleSignIn = GoogleSignIn();
+        await googleSignIn.signOut();
+        final googleUser = await googleSignIn.signIn();
+        if (googleUser == null) return;
+        final googleAuth = await googleUser.authentication;
+        final credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+        userCredential =
+            await FirebaseAuth.instance.signInWithCredential(credential);
+      }
       final user = userCredential.user;
 
       if (user == null) {
@@ -502,6 +503,5 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
-
 
 

@@ -29,7 +29,7 @@
       ]
     },
     {
-      "source": "/*.js",
+      "source": "/(.*)\\.js",
       "headers": [
         {
           "key": "Content-Type",
@@ -42,7 +42,7 @@
       ]
     },
     {
-      "source": "/*.wasm",
+      "source": "/(.*)\\.wasm",
       "headers": [
         {
           "key": "Content-Type",
@@ -65,4 +65,3 @@
     }
   ]
 }
-
