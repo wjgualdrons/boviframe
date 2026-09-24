@@ -90,67 +90,36 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _loginWithFacebook() async {
     try {
-      final result = await FacebookAuth.instance.login();
-
-      if (result.status == LoginStatus.success && result.accessToken != null) {
-        final userData = await FacebookAuth.instance.getUserData();
-        final email = userData['email'];
-
-        if (email == null || email.isEmpty) {
+      if (kIsWeb) {
+        await FirebaseAuth.instance.signInWithPopup(FacebookAuthProvider());
+      } else {
+        final result = await FacebookAuth.instance.login();
+        if (result.status != LoginStatus.success ||
+            result.accessToken == null) {
           _showAlert(
             icon: Icons.warning,
             color: Colors.orange,
-            title: 'Correo no disponible',
-            message:
-                'No pudimos acceder al correo de tu cuenta de Facebook. Por favor, asegÃºrate de que tu cuenta tiene un correo vÃ¡lido o usa otro mÃ©todo para iniciar sesiÃ³n.',
+            title: 'Inicio cancelado',
+            message: 'Inicio de sesiÃ³n con Facebook cancelado.',
           );
           return;
         }
-
-        // ðŸ” Verificar en Firestore si ese correo ya estÃ¡ registrado
-        final query =
-            await LocalFirestore.instance
-                .collection('usuarios')
-                .where('email', isEqualTo: email)
-                .limit(1)
-                .get();
-
-        if (query.docs.isEmpty) {
-          _showAlert(
-            icon: Icons.lock_outline,
-            color: Colors.orange,
-            title: 'Acceso restringido',
-            message:
-                'Este correo no estÃ¡ registrado. Por favor regÃ­strate primero antes de usar Facebook.',
-          );
-          return;
-        }
-
-        // âœ… Autenticarse con Firebase usando el token de Facebook
         final credential = FacebookAuthProvider.credential(
           result.accessToken!.tokenString,
         );
-        final userCredential = await FirebaseAuth.instance.signInWithCredential(
-          credential,
-        );
-
-        final user = userCredential.user;
-
-        if (user != null) {
-          await _loadUserDataIntoProvider(user.uid);
-          if (!mounted) return;
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            Navigator.pushReplacementNamed(context, '/main_menu');
-          });
-        }
-      } else {
-        _showAlert(
-          icon: Icons.warning,
-          color: Colors.orange,
-          title: 'Inicio cancelado',
-          message: 'Inicio de sesiÃ³n con Facebook cancelado.',
-        );
+        await FirebaseAuth.instance.signInWithCredential(credential);
       }
+      if (FirebaseAuth.instance.currentUser == null) {
+        _showAlert(
+          icon: Icons.error_outline,
+          color: Colors.red,
+          title: 'Error de autenticaciÃ³n',
+          message: 'Facebook no devolviÃ³ una sesiÃ³n vÃ¡lida.',
+        );
+        return;
+      }
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, '/main_menu');
     } catch (e) {
       _showAlert(
         icon: Icons.error_outline,

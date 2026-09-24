@@ -71,6 +71,16 @@ class ForgotPasswordScreen extends StatelessWidget {
       String message = 'Ha ocurrido un error al intentar recuperar tu cuenta.';
       if (e.code == 'user-not-found') {
         message = 'Este usuario no estÃ¡ registrado.';
+      } else if (e.code == 'invalid-email') {
+        message = 'El correo electrÃ³nico no tiene un formato vÃ¡lido.';
+      } else if (e.code == 'operation-not-allowed') {
+        message =
+            'La recuperaciÃ³n por correo no estÃ¡ habilitada en Firebase Authentication.';
+      } else if (e.code == 'too-many-requests') {
+        message =
+            'Se realizaron demasiados intentos. Espera unos minutos y vuelve a intentarlo.';
+      } else if (e.message != null && e.message!.isNotEmpty) {
+        message = e.message!;
       }
       _showAlert(
         context,
@@ -176,6 +186,5 @@ class ForgotPasswordScreen extends StatelessWidget {
     );
   }
 }
-
 
 
