@@ -82,26 +82,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final String email = user.email ?? '';
 
-      // ðŸ” Ahora que ya estÃ¡ autenticado, puedes consultar Firestore sin error
-      final query =
-          await LocalFirestore.instance
-              .collection('usuarios')
-              .where('email', isEqualTo: email)
-              .limit(1)
-              .get();
-      print('Email buscado: $email');
-      print('Documentos encontrados: ${query.docs.length}');
-
-      if (query.docs.isEmpty) {
-        // Crear nuevo usuario en Firestore si no existe
-        await LocalFirestore.instance
-            .collection('usuarios')
-            .doc(user.uid)
-            .set({
-              'name': user.displayName ?? '',
-              'email': user.email,
-              'createdAt': FieldValue.serverTimestamp(),
-            });
+      // The UID is the local database partition key, so profile lookup must
+      // use the authenticated user's document rather than an email query.
+      final profile = LocalFirestore.instance.collection('usuarios').doc(user.uid);
+      final profileSnapshot = await profile.get();
+      if (!profileSnapshot.exists) {
+        await profile.set({
+          'name': user.displayName ?? '',
+          'email': email,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
       }
 
       // âœ… Cargar datos del usuario al Provider
@@ -503,4 +493,3 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
-
