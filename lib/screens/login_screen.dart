@@ -82,20 +82,23 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final String email = user.email ?? '';
 
-      // The UID is the local database partition key, so profile lookup must
-      // use the authenticated user's document rather than an email query.
-      final profile = LocalFirestore.instance.collection('usuarios').doc(user.uid);
-      final profileSnapshot = await profile.get();
-      if (!profileSnapshot.exists) {
-        await profile.set({
-          'name': user.displayName ?? '',
-          'email': email,
-          'createdAt': FieldValue.serverTimestamp(),
-        });
+      // Firebase Auth is the gate for navigation. Local profile persistence
+      // must not prevent a valid OAuth session from entering the app.
+      try {
+        final profile =
+            LocalFirestore.instance.collection('usuarios').doc(user.uid);
+        final profileSnapshot = await profile.get();
+        if (!profileSnapshot.exists) {
+          await profile.set({
+            'name': user.displayName ?? '',
+            'email': email,
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+        }
+        await _loadUserDataIntoProvider(user.uid);
+      } catch (profileError) {
+        debugPrint('No se pudo guardar el perfil local: $profileError');
       }
-
-      // âœ… Cargar datos del usuario al Provider
-      await _loadUserDataIntoProvider(user.uid);
       if (!mounted) return;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Navigator.pushReplacementNamed(context, '/main_menu');
