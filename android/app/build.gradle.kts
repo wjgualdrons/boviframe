@@ -18,31 +18,34 @@ android {
 
     defaultConfig {
         applicationId = "com.app.boviframe"
-        minSdk        = 23
+        minSdk = flutter.minSdkVersion
         targetSdk     = 35
         versionCode   = 1
         versionName   = "1.0.1"
     }
 
     signingConfigs {
-        create("release") {
-            // Carga las propiedades del key.properties
-val propsFile = rootProject.file("app/key.properties")
+            val propsFile = rootProject.file("app/key.properties")
+            val storeFile = file("keystore-release.jks")
+            if (propsFile.isFile && storeFile.isFile) {
             val props = Properties().apply {
                 load(FileInputStream(propsFile))
             }
-
-            keyAlias      = props["keyAlias"]      as String
-            keyPassword   = props["keyPassword"]   as String
-storeFile = file("keystore-release.jks")
-            storePassword = props["storePassword"] as String
+                create("release") {
+                    keyAlias = props["keyAlias"] as String
+                    keyPassword = props["keyPassword"] as String
+                    this.storeFile = storeFile
+                    storePassword = props["storePassword"] as String
+                }
+            }
         }
-    }
 
-    buildTypes {
-        release {
-            signingConfig    = signingConfigs["release"]
-            isMinifyEnabled   = false
+        buildTypes {
+            release {
+                if (signingConfigs.findByName("release") != null) {
+                    signingConfig = signingConfigs["release"]
+                }
+                isMinifyEnabled   = false
             isShrinkResources = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

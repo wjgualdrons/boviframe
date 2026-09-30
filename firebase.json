@@ -1,15 +1,1 @@
-{
-  "functions": [
-    {
-      "source": "functions",
-      "codebase": "default",
-      "ignore": [
-        "node_modules",
-        ".git",
-        "firebase-debug.log",
-        "firebase-debug.*.log",
-        "*.local"
-      ]
-    }
-  ]
-}
+{"functions":[{"source":"functions","codebase":"default","ignore":["node_modules",".git","firebase-debug.log","firebase-debug.*.log","*.local"]}],"flutter":{"platforms":{"android":{"default":{"projectId":"boviframe-b5c2c","appId":"1:830798650861:android:ab96ba2ae9609a1875dbe4","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"boviframe-b5c2c","configurations":{"android":"1:830798650861:android:ab96ba2ae9609a1875dbe4","ios":"1:830798650861:ios:5d377020f610896775dbe4","macos":"1:830798650861:ios:5d377020f610896775dbe4","web":"1:830798650861:web:fdd7adafef866b9175dbe4","windows":"1:830798650861:web:69f28e1056c5380775dbe4"}}}}}}

@@ -1,4 +1,4 @@
-﻿// lib/screens/epmuras/edit_producer.dart
+// lib/screens/epmuras/edit_producer.dart
 
 import 'package:flutter/material.dart';
 import 'package:boviframe/services/local_firestore.dart';
@@ -19,6 +19,7 @@ class EditProducerScreen extends StatefulWidget {
 
 class _EditProducerScreenState extends State<EditProducerScreen> {
   final _unidadCtrl = TextEditingController();
+  final _loteCtrl = TextEditingController();
   final _ubicacionCtrl = TextEditingController();
   final _estadoCtrl = TextEditingController();
   final _municipioCtrl = TextEditingController();
@@ -35,6 +36,7 @@ class _EditProducerScreenState extends State<EditProducerScreen> {
     final data = widget.initialData;
     if (data != null) {
       _unidadCtrl.text = data['unidad_produccion']?.toString() ?? '';
+      _loteCtrl.text = data['nombre_lote']?.toString() ?? '';
       _ubicacionCtrl.text = data['ubicacion']?.toString() ?? '';
       _estadoCtrl.text = data['estado']?.toString() ?? '';
       _municipioCtrl.text = data['municipio']?.toString() ?? '';
@@ -45,10 +47,16 @@ class _EditProducerScreenState extends State<EditProducerScreen> {
   Future<void> _saveProducer() async {
     final map = <String, dynamic>{
       'unidad_produccion': _unidadCtrl.text.trim(),
+      'nombre_lote': _loteCtrl.text.trim(),
       'ubicacion': _ubicacionCtrl.text.trim(),
       'estado': _estadoCtrl.text.trim(),
       'municipio': _municipioCtrl.text.trim(),
     };
+
+    await LocalFirestore.instance
+        .collection('sesiones')
+        .doc(widget.sessionId)
+        .set({'nombre_lote': _loteCtrl.text.trim()}, SetOptions(merge: true));
 
     final col = LocalFirestore.instance
         .collection('sesiones')
@@ -75,6 +83,7 @@ class _EditProducerScreenState extends State<EditProducerScreen> {
   @override
   void dispose() {
     _unidadCtrl.dispose();
+    _loteCtrl.dispose();
     _ubicacionCtrl.dispose();
     _estadoCtrl.dispose();
     _municipioCtrl.dispose();
@@ -89,7 +98,7 @@ class _EditProducerScreenState extends State<EditProducerScreen> {
     return Scaffold(
       appBar: AppBar(
         iconTheme: const IconThemeData(color: Colors.white),
-        centerTitle: true, // Centra el tÃ­tulo
+        centerTitle: true, // Centra el título
         title: const Text(
           'Editar Productor',
           style: TextStyle(color: Colors.white), // Color del texto blanco
@@ -103,7 +112,15 @@ class _EditProducerScreenState extends State<EditProducerScreen> {
             TextField(
               controller: _unidadCtrl,
               decoration: const InputDecoration(
-                labelText: 'Unidad de ProducciÃ³n',
+                labelText: 'Unidad de Producción',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _loteCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Nombre del Lote a Evaluar',
                 border: OutlineInputBorder(),
               ),
             ),
@@ -111,7 +128,7 @@ class _EditProducerScreenState extends State<EditProducerScreen> {
             TextField(
               controller: _ubicacionCtrl,
               decoration: const InputDecoration(
-                labelText: 'UbicaciÃ³n',
+                labelText: 'Ubicación',
                 border: OutlineInputBorder(),
               ),
             ),

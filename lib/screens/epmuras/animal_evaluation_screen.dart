@@ -1,23 +1,20 @@
-﻿import 'dart:convert';
-import 'dart:typed_data';
-import 'package:flutter/services.dart'; // Para rootBundle.load()
+import 'dart:convert';
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter/rendering.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:boviframe/services/local_firestore.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image_picker/image_picker.dart';
 
-// â€”â€”â€” IMPORTS PDF â€”â€”â€”
+// IMPORTS PDF
 import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw; // pw.Document, pw.Table, pw.Text, etc.
+import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
 import '../providers/session_provider.dart';
-import '../../widgets/custom_app_scaffold.dart';
+import '../../widgets/custom_bottom_nav_bar.dart';
 import '../../services/offline_session_service.dart';
 import '../../services/connectivity_service.dart';
 
@@ -26,25 +23,23 @@ class AnimalEvaluationScreen extends StatefulWidget {
   final Map<String, dynamic>? initialData;
   final bool isEditing;
 
-  const AnimalEvaluationScreen({Key? key})
-    : docId = null,
-      initialData = null,
-      isEditing = false,
-      super(key: key);
+  const AnimalEvaluationScreen({super.key})
+      : docId = null,
+        initialData = null,
+        isEditing = false;
 
   const AnimalEvaluationScreen.edit({
-    Key? key,
+    super.key,
     required this.docId,
     required this.initialData,
-  }) : isEditing = true,
-       super(key: key);
+  })  : isEditing = true;
 
   @override
   State<AnimalEvaluationScreen> createState() => _AnimalEvaluationScreenState();
 }
 
 class _AnimalEvaluationScreenState extends State<AnimalEvaluationScreen> {
-  // â”€â”€â”€ Controllers para cada campo:
+  // Controllers
   final _numeroController = TextEditingController();
   final _registroController = TextEditingController();
   final _pesoNacController = TextEditingController();
@@ -55,48 +50,26 @@ class _AnimalEvaluationScreenState extends State<AnimalEvaluationScreen> {
   final _fechaDestController = TextEditingController();
   final _comentarioController = TextEditingController();
 
-  Future<void> _selectDate(
-    BuildContext context,
-    TextEditingController controller,
-  ) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
-      locale: const Locale('es', ''),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: Colors.blue.shade800, // Color del header y botÃ³n OK
-              onPrimary: Colors.white, // Texto en header
-              onSurface: Colors.black, // Texto general
-            ),
-            textButtonTheme: TextButtonThemeData(
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.blue.shade800, // BotÃ³n CANCELAR
-              ),
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-
-    if (picked != null) {
-      controller.text = '${picked.day}/${picked.month}/${picked.year}';
-    }
-  }
-
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-  // Dropdowns:
+  // Dropdowns / Toggles
   String? _selectedSexo;
   String? _selectedEstadoAnimal;
 
-  // Mapa de EPMURAS para esta evaluaciÃ³n:
-  Map<String, String?> _epmuras = {
+  // Vector overlays flag for Guía Visual Morfométrica
+  bool _showVectores = true;
+
+  // Trait Details metadata
+  final Map<String, Map<String, dynamic>> _traitDetails = const {
+    'E': {'name': 'Estructura', 'max': 6},
+    'P': {'name': 'Precocidad', 'max': 6},
+    'M': {'name': 'Musculatura', 'max': 6},
+    'U': {'name': 'Umbigo', 'max': 6},
+    'R': {'name': 'Racial', 'max': 6},
+    'A': {'name': 'Aplomos', 'max': 6},
+    'S': {'name': 'Sexualidad', 'max': 6},
+  };
+
+  // EPMURAS Map
+  final Map<String, String?> _epmuras = {
     'E': null,
     'P': null,
     'M': null,
@@ -106,31 +79,44 @@ class _AnimalEvaluationScreenState extends State<AnimalEvaluationScreen> {
     'S': null,
   };
 
-  Uint8List? _imageBytes; // Foto del animal
-  String? _sessionId; // Viene de SessionProvider
+  Uint8List? _imageBytes;
+  String? _sessionId;
   bool _hasChanged = false;
   bool _loading = true;
 
   Map<String, dynamic>? _sessionData;
   Map<String, dynamic>? _producerData;
+  List<Map<String, dynamic>> _sessionEvaluations = [];
 
   @override
   void initState() {
     super.initState();
 
-    // Si es ediciÃ³n, precargamos datos en los controllers:
+    // Default values if creating new (all fields empty)
+    _numeroController.text = '';
+    _registroController.text = '';
+    _fechaNacController.text = '';
+    _fechaDestController.text = '';
+    _pesoNacController.text = '';
+    _pesoDestController.text = '';
+    _pesoAjusController.text = '';
+    _edadDiasController.text = '';
+    _comentarioController.text = '';
+
+    // Populate data if editing
     if (widget.isEditing && widget.initialData != null) {
       final data = widget.initialData!;
       _numeroController.text = data['numero']?.toString() ?? '';
       _registroController.text = data['registro']?.toString() ?? '';
-      _selectedSexo = data['sexo']?.toString();
-      _selectedEstadoAnimal = data['estado']?.toString();
+      _selectedSexo = data['sexo']?.toString() ?? 'Macho';
+      _selectedEstadoAnimal = data['estado']?.toString() ?? 'Desarrollo';
       _fechaNacController.text = data['fecha_nac']?.toString() ?? '';
       _fechaDestController.text = data['fecha_dest']?.toString() ?? '';
       _pesoNacController.text = data['peso_nac']?.toString() ?? '';
       _pesoDestController.text = data['peso_dest']?.toString() ?? '';
       _pesoAjusController.text = data['peso_ajus']?.toString() ?? '';
       _edadDiasController.text = data['edad_dias']?.toString() ?? '';
+      _comentarioController.text = data['comentario']?.toString() ?? '';
 
       final epm = (data['epmuras'] as Map<String, dynamic>? ?? {});
       epm.forEach((key, value) {
@@ -146,9 +132,10 @@ class _AnimalEvaluationScreenState extends State<AnimalEvaluationScreen> {
           _imageBytes = null;
         }
       }
+      _calcularEdadYPesoAjustado();
     }
 
-    // Detectar cambios para habilitar â€œActualizarâ€:
+    // Change listeners
     _numeroController.addListener(_markChanged);
     _registroController.addListener(_markChanged);
     _pesoNacController.addListener(_markChanged);
@@ -158,21 +145,19 @@ class _AnimalEvaluationScreenState extends State<AnimalEvaluationScreen> {
     _fechaNacController.addListener(_markChanged);
     _fechaDestController.addListener(_markChanged);
 
-    // AÃ±ade los listeners de peso ajustado justo despuÃ©s:
-    _pesoNacController.addListener(_calcularPesoAjustado);
-    _pesoDestController.addListener(_calcularPesoAjustado);
-    _fechaNacController.addListener(_calcularPesoAjustado);
-    _fechaDestController.addListener(_calcularPesoAjustado);
+    _pesoNacController.addListener(_calcularEdadYPesoAjustado);
+    _pesoDestController.addListener(_calcularEdadYPesoAjustado);
+    _fechaNacController.addListener(_calcularEdadYPesoAjustado);
+    _fechaDestController.addListener(_calcularEdadYPesoAjustado);
 
-    // Registrar el callback de reset para el provider (si lo usas):
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       Provider.of<SessionProvider>(
         context,
         listen: false,
       ).registerResetEvaluationForm(_resetForm);
     });
 
-    // Cargar datos de sesiÃ³n/productor/usuario desde Firestore:
     _loadAllData();
   }
 
@@ -229,8 +214,8 @@ class _AnimalEvaluationScreenState extends State<AnimalEvaluationScreen> {
     _fechaNacController.clear();
     _fechaDestController.clear();
     setState(() {
-      _selectedSexo = null;
-      _selectedEstadoAnimal = null;
+      _selectedSexo = 'Macho';
+      _selectedEstadoAnimal = 'Desarrollo';
       _epmuras.updateAll((k, _) => null);
       _imageBytes = null;
       _hasChanged = false;
@@ -238,57 +223,121 @@ class _AnimalEvaluationScreenState extends State<AnimalEvaluationScreen> {
     Provider.of<SessionProvider>(context, listen: false).clearAll();
   }
 
-  void _calcularPesoAjustado() {
-    final nac = double.tryParse(_pesoNacController.text);
-    final dest = double.tryParse(_pesoDestController.text);
-    if (nac == null || dest == null) return;
-
-    // Usa DateFormat:
-    final df = DateFormat('d/M/y');
-    DateTime fn, fd;
+  DateTime? _parseFecha(String text) {
+    final cleaned = text.trim();
+    if (cleaned.isEmpty) return null;
+    final parts = cleaned.split('/');
+    if (parts.length == 3) {
+      final d = int.tryParse(parts[0]);
+      final m = int.tryParse(parts[1]);
+      final y = int.tryParse(parts[2]);
+      if (d != null && m != null && y != null) {
+        return DateTime(y, m, d);
+      }
+    }
     try {
-      fn = df.parse(_fechaNacController.text);
-      fd = df.parse(_fechaDestController.text);
+      return DateFormat('d/M/y').parseStrict(cleaned);
     } catch (_) {
-      return; // formato invÃ¡lido
+      try {
+        return DateFormat('dd/MM/yyyy').parseStrict(cleaned);
+      } catch (_) {
+        try {
+          return DateTime.parse(cleaned);
+        } catch (_) {
+          return null;
+        }
+      }
+    }
+  }
+
+  void _calcularEdadYPesoAjustado() {
+    final fn = _parseFecha(_fechaNacController.text);
+    final fd = _parseFecha(_fechaDestController.text);
+
+    // 1. Calcular Edad Actual en días según Fecha de Nacimiento
+    if (fn != null) {
+      final hoy = DateTime.now();
+      final edadActualDias = hoy.difference(fn).inDays;
+      if (edadActualDias >= 0) {
+        _edadDiasController.text = '$edadActualDias';
+      }
+    } else {
+      _edadDiasController.text = '';
     }
 
-    final dias = fd.difference(fn).inDays;
-    if (dias <= 0) return;
+    // 2. Calcular Peso Ajustado según la fórmula:
+    // Pajustado = (((Peso destete - Peso nacer) / (Fecha Destete - Fecha Nacer)) * 205) + Peso al nacer
+    final pesoNac = double.tryParse(_pesoNacController.text.replaceAll(',', '.'));
+    final pesoDest = double.tryParse(_pesoDestController.text.replaceAll(',', '.'));
 
-    final ajus = (((dest - nac) / dias) * 205) + nac;
-    // Actualiza los controllers dentro de setState para que todo se redibuje:
-    setState(() {
-      _pesoAjusController.text = ajus.toStringAsFixed(0);
-      _edadDiasController.text = dias.toString();
-      _hasChanged = true;
-    });
+    if (pesoNac != null && pesoDest != null && fn != null && fd != null) {
+      final diasDestete = fd.difference(fn).inDays;
+      if (diasDestete > 0) {
+        final pAjus = (((pesoDest - pesoNac) / diasDestete) * 205) + pesoNac;
+        _pesoAjusController.text = pAjus.toStringAsFixed(1);
+      } else {
+        _pesoAjusController.text = '';
+      }
+    } else {
+      _pesoAjusController.text = '';
+    }
+  }
+
+  Future<void> _selectDate(
+    BuildContext context,
+    TextEditingController controller,
+  ) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+      locale: const Locale('es', ''),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF0F3B27),
+              onPrimary: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      controller.text = '${picked.day}/${picked.month}/${picked.year}';
+    }
   }
 
   Future<void> _pickImage() async {
     showModalBottomSheet(
       context: context,
-      builder:
-          (ctx) => Wrap(
-            children: [
-              ListTile(
-                leading: const Icon(Icons.camera_alt),
-                title: const Text('Tomar foto'),
-                onTap: () async {
-                  Navigator.pop(ctx);
-                  await _handleImagePick(ImageSource.camera);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.photo_library),
-                title: const Text('Seleccionar de galerÃ­a'),
-                onTap: () async {
-                  Navigator.pop(ctx);
-                  await _handleImagePick(ImageSource.gallery);
-                },
-              ),
-            ],
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Wrap(
+        children: [
+          ListTile(
+            leading: const Icon(Icons.camera_alt, color: Color(0xFF0F3B27)),
+            title: const Text('Tomar foto'),
+            onTap: () async {
+              Navigator.pop(ctx);
+              await _handleImagePick(ImageSource.camera);
+            },
           ),
+          ListTile(
+            leading: const Icon(Icons.photo_library, color: Color(0xFF0F3B27)),
+            title: const Text('Seleccionar de galería'),
+            onTap: () async {
+              Navigator.pop(ctx);
+              await _handleImagePick(ImageSource.gallery);
+            },
+          ),
+        ],
+      ),
     );
   }
 
@@ -307,28 +356,23 @@ class _AnimalEvaluationScreenState extends State<AnimalEvaluationScreen> {
         quality: 70,
       );
 
-      // Umbral de 1 MB = 1 048 576 bytes
       const maxSize = 1048576;
       if (compressed.length > maxSize) {
+        if (!mounted) return;
         await showDialog(
           context: context,
-          builder:
-              (_) => AlertDialog(
-                title: const Text('Imagen demasiado grande'),
-                content: const Text(
-                  'La imagen comprimida sigue ocupando mÃ¡s de 1 MB.\n\n'
-                  'Recomendaciones:\n'
-                  'â€¢ RecÃ³rtala antes de subirla para centrar solo el animal.\n'
-                  'â€¢ Reduce su resoluciÃ³n o calidad.\n'
-                  'â€¢ Utiliza una herramienta de ediciÃ³n o app mÃ³vil para ajustar el tamaÃ±o.',
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Entendido'),
-                  ),
-                ],
+          builder: (_) => AlertDialog(
+            title: const Text('Imagen demasiado grande'),
+            content: const Text(
+              'La imagen comprimida ocupa más de 1 MB. Por favor recórtala o reduce su tamaño.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Entendido'),
               ),
+            ],
+          ),
         );
         return;
       }
@@ -338,27 +382,10 @@ class _AnimalEvaluationScreenState extends State<AnimalEvaluationScreen> {
         _hasChanged = true;
       });
     } catch (e) {
-      await showDialog(
-        context: context,
-        builder:
-            (_) => AlertDialog(
-              title: const Text('Error al procesar la imagen'),
-              content: const Text(
-                'Ha ocurrido un error al comprimir la imagen.\n'
-                'Intenta recortar la foto o usar otra imagen mÃ¡s pequeÃ±a.',
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cerrar'),
-                ),
-              ],
-            ),
-      );
+      debugPrint('Error al procesar imagen: $e');
     }
   }
 
-  /// Carga datos de sesiÃ³n, productor y usuario desde Firestore
   Future<void> _loadAllData() async {
     if (_sessionId == null) {
       setState(() => _loading = false);
@@ -366,51 +393,44 @@ class _AnimalEvaluationScreenState extends State<AnimalEvaluationScreen> {
     }
 
     try {
-      // 1) Cargar datos de la sesiÃ³n
-      final sessionSnap =
-          await LocalFirestore.instance
-              .collection('sesiones')
-              .doc(_sessionId)
-              .get();
+      final sessionSnap = await LocalFirestore.instance
+          .collection('sesiones')
+          .doc(_sessionId)
+          .get();
       _sessionData = sessionSnap.data();
 
-      // 2) Leer â€œdatos_productorâ€ como SUBCOLECCIÃ“N dentro de esta sesiÃ³n
-      final prodQuery =
-          await LocalFirestore.instance
-              .collection('sesiones')
-              .doc(_sessionId)
-              .collection('datos_productor')
-              .limit(1)
-              .get();
+      final prodQuery = await LocalFirestore.instance
+          .collection('sesiones')
+          .doc(_sessionId)
+          .collection('datos_productor')
+          .limit(1)
+          .get();
 
       if (prodQuery.docs.isNotEmpty) {
         _producerData = prodQuery.docs.first.data();
-      } else {
-        _producerData = null;
       }
 
-      // 3) Cargar datos del usuario: **usar "userId" en lugar de "usuarioId"**
-      final userId = _sessionData?['userId'] as String?;
-      if (userId != null) {
-        // Los datos del usuario se cargarÃ¡n cuando se necesiten en el PDF
-        // final userSnap =
-        //     await LocalFirestore.instance
-        //         .collection('usuarios')
-        //         .doc(userId)
-        //         .get();
-        // _userData = userSnap.data();
-      }
+      final evalsSnap = await LocalFirestore.instance
+          .collection('sesiones')
+          .doc(_sessionId)
+          .collection('evaluaciones_animales')
+          .orderBy('timestamp', descending: false)
+          .get();
+
+      _sessionEvaluations = evalsSnap.docs.map((d) {
+        final m = d.data();
+        m['evalId'] = d.id;
+        return m;
+      }).toList();
     } catch (e) {
-      debugPrint('Error cargando datos de sesiÃ³n/productor/usuario: $e');
+      debugPrint('Error cargando datos de sesión: $e');
     } finally {
-      if (!mounted) return;
-      setState(() {
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 
-  /// Guarda o actualiza la evaluaciÃ³n en Firestore
   Future<String?> _guardarEvaluacionEnFirestore() async {
     if (_sessionId == null || _sessionId!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -452,54 +472,39 @@ class _AnimalEvaluationScreenState extends State<AnimalEvaluationScreen> {
       'edad_dias': _edadDiasController.text,
       'comentario': _comentarioController.text,
       'epmuras': sessionProv.epmuras,
-      'image_base64':
-          sessionProv.imageBytes != null
-              ? base64Encode(sessionProv.imageBytes!)
-              : null,
+      'image_base64': sessionProv.imageBytes != null
+          ? base64Encode(sessionProv.imageBytes!)
+          : null,
       'datos_productor': sessionProv.datosProductor,
       'timestamp': Timestamp.now(),
       'session_id': _sessionId,
     };
 
     try {
-      // Verificar conexiÃ³n a internet
-      final hasInternet = await ConnectivityService.hasRealInternetConnection();
-      
+      final hasInternet =
+          await ConnectivityService.hasRealInternetConnection();
+
       if (!hasInternet) {
-        // Sin internet: guardar offline
-        try {
-          final offlineId = await OfflineSessionService.saveEvaluationOffline(
-            evaluationData: data,
-            sessionId: _sessionId ?? '',
+        final offlineId = await OfflineSessionService.saveEvaluationOffline(
+          evaluationData: data,
+          sessionId: _sessionId ?? '',
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                '📱 Guardado offline. Se sincronizará cuando haya internet.',
+              ),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 3),
+            ),
           );
-          
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('ðŸ“± Guardado offline. Se sincronizarÃ¡ cuando haya internet.'),
-                backgroundColor: Colors.orange,
-                duration: Duration(seconds: 3),
-              ),
-            );
-          }
-          _hasChanged = false;
-          return offlineId;
-        } catch (offlineError) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('âŒ Error al guardar offline: $offlineError'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-          return null;
         }
+        _hasChanged = false;
+        return offlineId;
       }
 
-      // Hay internet: intentar guardar en Firestore
       if (widget.isEditing && widget.docId != null) {
-        // MODO EDICIÃ“N
         await LocalFirestore.instance
             .collection('sesiones')
             .doc(_sessionId)
@@ -510,82 +515,40 @@ class _AnimalEvaluationScreenState extends State<AnimalEvaluationScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('âœ… EvaluaciÃ³n actualizada correctamente'),
-              backgroundColor: Colors.green,
+              content: Text('✅ Evaluación actualizada correctamente'),
+              backgroundColor: Color(0xFF0F3B27),
             ),
           );
         }
         return widget.docId;
       } else {
-        // MODO NUEVO
-        try {
-          final docRef = await LocalFirestore.instance
-              .collection('sesiones')
-              .doc(_sessionId)
-              .collection('evaluaciones_animales')
-              .add(data);
+        final docRef = await LocalFirestore.instance
+            .collection('sesiones')
+            .doc(_sessionId)
+            .collection('evaluaciones_animales')
+            .add(data);
 
-          _hasChanged = false;
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('âœ… EvaluaciÃ³n guardada correctamente'),
-                backgroundColor: Colors.green,
-              ),
-            );
-          }
-          return docRef.id;
-        } on FirebaseException catch (e) {
-          // Si Firestore falla, guardar offline como respaldo
-          debugPrint('âš ï¸ Error de Firestore, guardando offline: ${e.code}');
-          try {
-            final offlineId = await OfflineSessionService.saveEvaluationOffline(
-              evaluationData: data,
-              sessionId: _sessionId ?? '',
-            );
-            
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('ðŸ“± Guardado offline. Se sincronizarÃ¡ cuando sea posible.'),
-                  backgroundColor: Colors.orange,
-                ),
-              );
-            }
-            _hasChanged = false;
-            return offlineId;
-          } catch (offlineError) {
-            rethrow;
-          }
+        _hasChanged = false;
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✅ Evaluación guardada correctamente'),
+              backgroundColor: Color(0xFF0F3B27),
+            ),
+          );
         }
+        return docRef.id;
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('âŒ Error al guardar: $e'),
+            content: Text('❌ Error al guardar: $e'),
             backgroundColor: Colors.red,
           ),
         );
       }
-      // Como Ãºltimo recurso, intentar guardar offline
-      try {
-        await OfflineSessionService.saveEvaluationOffline(
-          evaluationData: data,
-          sessionId: _sessionId ?? '',
-        );
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('ðŸ“± Guardado offline como respaldo.'),
-              backgroundColor: Colors.orange,
-            ),
-          );
-        }
-        return DateTime.now().millisecondsSinceEpoch.toString();
-      } catch (_) {
-        return null;
-      }
+      return null;
     }
   }
 
@@ -593,7 +556,7 @@ class _AnimalEvaluationScreenState extends State<AnimalEvaluationScreen> {
     final docId = await _guardarEvaluacionEnFirestore();
     if (docId == null) return;
     _resetForm();
-    // Al guardar, navegamos a la pestaÃ±a de "Nueva SesiÃ³n"
+    if (!mounted) return;
     Navigator.pushReplacementNamed(
       context,
       '/new_session',
@@ -605,6 +568,7 @@ class _AnimalEvaluationScreenState extends State<AnimalEvaluationScreen> {
     final docId = await _guardarEvaluacionEnFirestore();
     if (docId == null) return;
     _resetForm();
+    if (!mounted) return;
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
@@ -615,36 +579,16 @@ class _AnimalEvaluationScreenState extends State<AnimalEvaluationScreen> {
   }
 
   Future<void> _actualizarEvaluacionExistente() async {
-    if (!_hasChanged) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No hay cambios para actualizar.'),
-          backgroundColor: Colors.grey,
-        ),
-      );
-      return;
-    }
-    if (_sessionId == null || _sessionId!.isEmpty || widget.docId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Error: no se puede actualizar (falta sessionId o docId).',
-          ),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
     final docId = await _guardarEvaluacionEnFirestore();
     if (docId != null) {
       _resetForm();
+      if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/epmuras');
     }
   }
 
   Future<void> _cancelarEvaluacion() async {
-    // No borra nada en la base de datos. Solo redirige sin modificar registros.
+    if (!mounted) return;
     Navigator.pushReplacementNamed(
       context,
       '/new_session',
@@ -652,213 +596,28 @@ class _AnimalEvaluationScreenState extends State<AnimalEvaluationScreen> {
     );
   }
 
-  /// Construye un resumen de los cambios que estamos a punto de guardar.
-  /// Si es ediciÃ³n, solo muestra los campos que difieren de initialData.
-  /// Si es nuevo, muestra todos los valores ingresados.
-  String _buildResumenCambios() {
-    final buffer = StringBuffer();
-
-    // Helper para comparar un campo (edit) vs valor original:
-    void compareField(String key, String label, String actualValue) {
-      if (widget.isEditing && widget.initialData != null) {
-        final original = (widget.initialData![key]?.toString() ?? '');
-        if (original != actualValue) {
-          buffer.writeln(
-            '$label:\n  â€¢ Antes: $original\n  â€¢ Ahora: $actualValue\n',
-          );
-        }
-      } else {
-        // modo â€œnuevoâ€
-        buffer.writeln('$label: $actualValue\n');
-      }
-    }
-
-    // Campos texto bÃ¡sicos:
-    compareField('numero', 'NÃºmero', _numeroController.text);
-    compareField('registro', 'Registro (RGN)', _registroController.text);
-    compareField('sexo', 'Sexo', _selectedSexo ?? '-');
-    compareField('estado', 'Estado Animal', _selectedEstadoAnimal ?? '-');
-    compareField('fecha_nac', 'Fecha Nacimiento', _fechaNacController.text);
-    compareField('fecha_dest', 'Fecha Destete', _fechaDestController.text);
-    compareField('peso_nac', 'Peso Nacimiento', _pesoNacController.text);
-    compareField('peso_dest', 'Peso Destete', _pesoDestController.text);
-    compareField('peso_ajus', 'Peso Ajustado', _pesoAjusController.text);
-    compareField('edad_dias', 'Edad (dÃ­as)', _edadDiasController.text);
-
-    // EPMURAS:
-    if (widget.isEditing && widget.initialData != null) {
-      final origEpm =
-          (widget.initialData!['epmuras'] as Map<String, dynamic>? ?? {});
-      _epmuras.forEach((letra, valorActual) {
-        final origVal = (origEpm[letra]?.toString() ?? '');
-        final actVal = valorActual ?? '-';
-        if (origVal != actVal) {
-          buffer.writeln(
-            'EPMURAS $letra:\n  â€¢ Antes: $origVal\n  â€¢ Ahora: $actVal\n',
-          );
-        }
-      });
-    } else {
-      // Nuevo => mostrar todos los EPMURAS que tengan algo distinto de null:
-      _epmuras.forEach((letra, valorActual) {
-        final actVal = valorActual ?? '-';
-        buffer.writeln('EPMURAS $letra: $actVal\n');
-      });
-    }
-
-    // Imagen:
-    if (widget.isEditing && widget.initialData != null) {
-      final origBase64 = widget.initialData!['image_base64'] as String?;
-      final tieneOriginal = origBase64 != null && origBase64.isNotEmpty;
-      final tieneActual = _imageBytes != null;
-      if (tieneOriginal != tieneActual) {
-        buffer.writeln(
-          'Foto del animal:\n  â€¢ Antes: ${tieneOriginal ? 'existÃ­a' : 'no existÃ­a'}\n  â€¢ Ahora: ${tieneActual ? 'ha sido cargada' : 'ha sido removida'}\n',
-        );
-      }
-    } else {
-      // Modo nuevo:
-      if (_imageBytes != null) {
-        buffer.writeln('Foto del animal: Se cargÃ³ una imagen\n');
-      } else {
-        buffer.writeln('Foto del animal: (sin imagen)\n');
-      }
-    }
-
-    final resultado = buffer.toString().trim();
-    return resultado.isEmpty ? '[No hay cambios detectados]' : resultado;
-  }
-
-  Future<void> _confirmGuardar() async {
-    final resumen = _buildResumenCambios();
-
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
-          contentPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
-          backgroundColor: Colors.white,
-          title: Row(
-            children: [
-              Icon(
-                widget.isEditing ? Icons.edit_note : Icons.save_alt,
-                color: widget.isEditing ? Colors.orange : Colors.blue,
-                size: 28,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  widget.isEditing
-                      ? 'Confirmar actualizaciÃ³n'
-                      : 'Confirmar guardado',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          content: SingleChildScrollView(
-            // âœ… Agregado para scroll completo
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.isEditing
-                      ? 'EstÃ¡s a punto de actualizar esta evaluaciÃ³n con los siguientes cambios:'
-                      : 'EstÃ¡s a punto de guardar la siguiente informaciÃ³n.\n\nðŸ“Œ Al confirmar, serÃ¡s redirigido a la pestaÃ±a "Nueva SesiÃ³n".',
-                  style: const TextStyle(fontSize: 15),
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  constraints: const BoxConstraints(
-                    maxHeight: 250,
-                  ), // âœ… LÃ­mite de altura
-                  padding: const EdgeInsets.all(12),
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
-                  child: SingleChildScrollView(
-                    child: Text(
-                      resumen,
-                      style: const TextStyle(fontSize: 13, height: 1.4),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actionsPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 12,
-          ),
-          actions: [
-            TextButton(
-              style: TextButton.styleFrom(foregroundColor: Colors.grey[700]),
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton.icon(
-              icon: Icon(widget.isEditing ? Icons.check : Icons.save),
-              label: Text(widget.isEditing ? 'Actualizar' : 'Guardar'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: widget.isEditing ? Colors.orange : Colors.blue,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              onPressed: () => Navigator.of(context).pop(true),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (confirm == true) {
-      if (widget.isEditing) {
-        _actualizarEvaluacionExistente();
-      } else {
-        _guardarYVolver();
-      }
-    }
-  }
-
-  /// Muestra un diÃ¡logo de confirmaciÃ³n antes de cancelar la ediciÃ³n/creaciÃ³n.
-  /// Solo advierte que se perderÃ¡n los cambios en la pantalla actual, sin tocar la base de datos.
   Future<void> _confirmCancelar() async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Confirmar Salida'),
-          content: const Text(
-            'Â¿Deseas salir sin guardar? No se eliminarÃ¡ ningÃºn registro en la base de datos.',
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmar Salida'),
+        content: const Text(
+          '¿Deseas salir sin guardar? No se eliminará ningún registro en la base de datos.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Seguir Editando'),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Seguir Editando'),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
             ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.redAccent,
-              ),
-              child: const Text('Salir'),
-            ),
-          ],
-        );
-      },
+            child: const Text('Salir'),
+          ),
+        ],
+      ),
     );
 
     if (confirm == true) {
@@ -866,33 +625,27 @@ class _AnimalEvaluationScreenState extends State<AnimalEvaluationScreen> {
     }
   }
 
-  /// -----------------------------------------------------------------------
-  /// Carga todas las evaluaciones dentro de cada sesiÃ³n (colecciÃ³n raÃ­z)
   Future<List<Map<String, dynamic>>> _cargarTodasLasEvaluaciones() async {
     final firestore = LocalFirestore.instance;
     final userId = FirebaseAuth.instance.currentUser?.uid;
     if (userId == null) return [];
 
-    final sesionesSnapshot =
-        await firestore
-            .collection('sesiones')
-            .orderBy('fecha_creacion', descending: true)
-            .get();
+    final sesionesSnapshot = await firestore
+        .collection('sesiones')
+        .orderBy('fecha_creacion', descending: true)
+        .get();
 
     final List<Map<String, dynamic>> acumulado = [];
 
     for (final sesionDoc in sesionesSnapshot.docs) {
       final sessionId = sesionDoc.id;
-
-      // ðŸ” Leer solo evaluaciones de este usuario
-      final evalsSnapshot =
-          await firestore
-              .collection('sesiones')
-              .doc(sessionId)
-              .collection('evaluaciones_animales')
-              .where('usuarioId', isEqualTo: userId)
-              .orderBy('timestamp', descending: true)
-              .get();
+      final evalsSnapshot = await firestore
+          .collection('sesiones')
+          .doc(sessionId)
+          .collection('evaluaciones_animales')
+          .where('usuarioId', isEqualTo: userId)
+          .orderBy('timestamp', descending: true)
+          .get();
 
       for (final evalDoc in evalsSnapshot.docs) {
         final mapaEval = evalDoc.data();
@@ -905,15 +658,11 @@ class _AnimalEvaluationScreenState extends State<AnimalEvaluationScreen> {
     return acumulado;
   }
 
-  /// -----------------------------------------------------------------------
-  /// DIALOG PARA â€œVer sesiones y evaluacionesâ€
-  ///
   void _mostrarConteosDialog() {
     showDialog(
       context: context,
       builder: (context) {
         String searchQuery = '';
-
         return FutureBuilder<List<Map<String, dynamic>>>(
           future: _cargarTodasLasEvaluaciones(),
           builder: (context, snapshot) {
@@ -937,158 +686,77 @@ class _AnimalEvaluationScreenState extends State<AnimalEvaluationScreen> {
             }
 
             final todasLasEval = snapshot.data!;
-            final totalEval = todasLasEval.length;
-
-            // Contar cuÃ¡ntas sesiones distintas hay:
-            final sesionesDistintas = <String>{};
-            for (var m in todasLasEval) {
-              if (m['sessionId'] != null) {
-                sesionesDistintas.add(m['sessionId'] as String);
-              }
-            }
-            final totalSesiones = sesionesDistintas.length;
-
             return StatefulBuilder(
               builder: (context, setStateSB) {
-                // Filtrar segÃºn nÃºmero o registro:
-
-                final filtered =
-                    todasLasEval.where((m) {
-                      final numero =
-                          (m['numero'] ?? '').toString().toLowerCase();
-                      final registro =
-                          (m['registro'] ?? '').toString().toLowerCase();
-                      final q = searchQuery.toLowerCase();
-                      return numero.contains(q) || registro.contains(q);
-                    }).toList();
-                filtered.sort((a, b) {
-                  final na = int.tryParse(a['numero']?.toString() ?? '0') ?? 0;
-                  final nb = int.tryParse(b['numero']?.toString() ?? '0') ?? 0;
-                  return na.compareTo(nb);
-                });
+                final filtered = todasLasEval.where((m) {
+                  final numero = (m['numero'] ?? '').toString().toLowerCase();
+                  final registro =
+                      (m['registro'] ?? '').toString().toLowerCase();
+                  final q = searchQuery.toLowerCase();
+                  return numero.contains(q) || registro.contains(q);
+                }).toList();
 
                 return AlertDialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   title: const Text('Sesiones y Evaluaciones'),
                   content: SizedBox(
                     width: double.maxFinite,
-                    height: 400, // Ajusta la altura segÃºn convenga
+                    height: 400,
                     child: Column(
-                      mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Total evaluaciones: $totalEval'),
-                        const SizedBox(height: 4),
-                        Text('Sesiones distintas: $totalSesiones'),
+                        Text('Total evaluaciones: ${todasLasEval.length}'),
                         const SizedBox(height: 12),
                         TextField(
                           decoration: const InputDecoration(
                             prefixIcon: Icon(Icons.search),
-                            hintText: 'Buscar por nÃºmero o registro',
+                            hintText: 'Buscar por número o registro',
                             border: OutlineInputBorder(),
                           ),
                           onChanged: (val) {
-                            setStateSB(() {
-                              searchQuery = val;
-                            });
+                            setStateSB(() => searchQuery = val);
                           },
                         ),
                         const SizedBox(height: 12),
                         Expanded(
-                          child:
-                              filtered.isEmpty
-                                  ? const Center(
-                                    child: Text('No se encontraron resultados'),
-                                  )
-                                  : ListView.builder(
-                                    itemCount: filtered.length,
-                                    itemBuilder: (context, idx) {
-                                      final m = filtered[idx];
-                                      final numero = m['numero'] ?? 'â€”';
-                                      final registro = m['registro'] ?? 'â€”';
-                                      final fechaNac = m['fecha_nac'] ?? 'â€”';
-                                      final pesoNac = m['peso_nac'] ?? 'â€”';
-                                      final imageBase64 =
-                                          m['image_base64'] as String?;
-
-                                      Widget leadingImage = const SizedBox(
-                                        width: 48,
-                                      );
-                                      if (imageBase64 != null) {
-                                        try {
-                                          final bytes = base64Decode(
-                                            imageBase64,
-                                          );
-                                          leadingImage = ClipRRect(
-                                            borderRadius: BorderRadius.circular(
-                                              4,
+                          child: filtered.isEmpty
+                              ? const Center(
+                                  child: Text('No se encontraron resultados'),
+                                )
+                              : ListView.builder(
+                                  itemCount: filtered.length,
+                                  itemBuilder: (context, idx) {
+                                    final m = filtered[idx];
+                                    return ListTile(
+                                      title: Text(
+                                        'N° ${m['numero'] ?? '—'} · RGN ${m['registro'] ?? '—'}',
+                                      ),
+                                      subtitle: Text(
+                                        'Nac.: ${m['fecha_nac'] ?? '—'} · Peso: ${m['peso_nac'] ?? '—'}',
+                                      ),
+                                      onTap: () {
+                                        Navigator.of(context).pop();
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) =>
+                                                AnimalEvaluationScreen.edit(
+                                              docId: m['evalId'],
+                                              initialData: m,
                                             ),
-                                            child: Image.memory(
-                                              bytes,
-                                              width: 48,
-                                              height: 48,
-                                              fit: BoxFit.cover,
+                                            settings: RouteSettings(
+                                              arguments: {
+                                                'sessionId': m['sessionId'],
+                                              },
                                             ),
-                                          );
-                                        } catch (_) {
-                                          leadingImage = const SizedBox(
-                                            width: 48,
-                                          );
-                                        }
-                                      }
-
-                                      return ListTile(
-                                        leading: leadingImage,
-                                        title: Text(
-                                          'NÂ° $numero  Â·  RGN $registro',
-                                        ),
-                                        subtitle: Text(
-                                          'Nac.: $fechaNac  Â·  Peso: $pesoNac',
-                                        ),
-                                        onTap: () async {
-                                          final currentUserId =
-                                              FirebaseAuth
-                                                  .instance
-                                                  .currentUser
-                                                  ?.uid;
-                                          final evalUserId =
-                                              m['usuarioId'] as String?;
-
-                                          if (currentUserId == null ||
-                                              evalUserId != currentUserId) {
-                                            ScaffoldMessenger.of(
-                                              context,
-                                            ).showSnackBar(
-                                              const SnackBar(
-                                                content: Text(
-                                                  'â›” No puedes acceder a esta evaluaciÃ³n.',
-                                                ),
-                                                backgroundColor: Colors.red,
-                                              ),
-                                            );
-                                            return;
-                                          }
-
-                                          Navigator.of(context).pop();
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder:
-                                                  (_) =>
-                                                      AnimalEvaluationScreen.edit(
-                                                        docId: m['evalId'],
-                                                        initialData: m,
-                                                      ),
-                                              settings: RouteSettings(
-                                                arguments: {
-                                                  'sessionId': m['sessionId'],
-                                                },
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                      );
-                                    },
-                                  ),
+                                          ),
+                                        );
+                                      },
+                                    );
+                                  },
+                                ),
                         ),
                       ],
                     ),
@@ -1108,43 +776,143 @@ class _AnimalEvaluationScreenState extends State<AnimalEvaluationScreen> {
     );
   }
 
-  /// Calcula el promedio de EPMURAS para una lista de evaluaciones
-  Map<String, double> _calcularPromedioSesion(
-    List<Map<String, dynamic>> evaluaciones,
-  ) {
-    Map<String, double> sumMap = {
-      'E': 0,
-      'P': 0,
-      'M': 0,
-      'U': 0,
-      'R': 0,
-      'A': 0,
-      'S': 0,
-    };
+  double get _promedioEpmuras {
     int count = 0;
-
-    for (var evalData in evaluaciones) {
-      final epm = (evalData['epmuras'] as Map<String, dynamic>? ?? {});
-      if (epm.isNotEmpty) {
-        count++;
-        sumMap.forEach((key, _) {
-          final val = double.tryParse(epm[key]?.toString() ?? '') ?? 0.0;
-          sumMap[key] = (sumMap[key] ?? 0) + val;
-        });
+    double sum = 0;
+    _epmuras.forEach((key, val) {
+      if (val != null) {
+        final d = double.tryParse(val);
+        if (d != null) {
+          sum += d;
+          count++;
+        }
       }
-    }
-    if (count > 0) {
-      sumMap.updateAll((key, val) => val / count);
-    }
-    return sumMap;
+    });
+    if (count == 0) return 0.0;
+    return sum / count;
   }
 
-  /// -----------------------------------------------------------------------
-  /// Genera (o comparte) el PDF con todos los datos (animal, usuario, lista EPMURAS, etc.)
-  // ignore: unused_element
+  int get _criteriosCalificadosCount {
+    return _epmuras.values.where((v) => v != null && v.isNotEmpty).length;
+  }
+
+  void _openEpmurasSelector(String letra) {
+    final details = _traitDetails[letra] ?? {'name': letra, 'max': 6};
+    final maxScore = details['max'] as int;
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      backgroundColor: Colors.white,
+      builder: (ctx) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF0F3B27),
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      letra,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Calificar ${details['name']}',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF0F3B27),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Seleccione un valor entre 1 (Mínimo) y $maxScore (Óptimo)',
+                style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: List.generate(maxScore, (i) {
+                  final scoreStr = '${i + 1}';
+                  final isSelected = _epmuras[letra] == scoreStr;
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _epmuras[letra] = scoreStr;
+                        _markChanged();
+                      });
+                      Navigator.pop(ctx);
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? const Color(0xFF0F3B27)
+                            : const Color(0xFFE8F3EC),
+                        shape: BoxShape.circle,
+                        boxShadow: isSelected
+                            ? [
+                                BoxShadow(
+                                  color: const Color(0xFF0F3B27).withValues(alpha: 0.3),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 3),
+                                )
+                              ]
+                            : null,
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        scoreStr,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: isSelected ? Colors.white : const Color(0xFF0F3B27),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _printOrSharePDF(Map<String, dynamic> m) async {
     try {
-      // â”€â”€â”€ 1) EXTRAER DATOS DE 'm' â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       final numero = (m['numero'] ?? '').toString();
       final registro = (m['registro'] ?? '').toString();
       final sexo = (m['sexo'] ?? '').toString();
@@ -1156,93 +924,48 @@ class _AnimalEvaluationScreenState extends State<AnimalEvaluationScreen> {
       final pesoAjus = (m['peso_ajus'] ?? '').toString();
       final edadDias = (m['edad_dias'] ?? '').toString();
 
-      // Construimos el mapa epmurasForPDF a partir de m['epmuras']
       final rawEpm = (m['epmuras'] as Map<String, dynamic>? ?? {});
       final epmurasForPDF = <String, String>{};
       rawEpm.forEach((k, v) {
         epmurasForPDF[k] = v?.toString() ?? '0';
       });
 
-      // Foto base64 si existe
       final imageBase64 = m['image_base64'] as String?;
 
-      // â”€â”€â”€ 2) LEER DATOS DEL USUARIO DESDE FIRESTORE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       String userName = 'Nombre no disponible';
       String userEmail = 'E-mail no disponible';
-      String userProf = 'ProfesiÃ³n no disponible';
-      String userLoc = 'UbicaciÃ³n no disponible';
+      String userProf = 'Profesión no disponible';
+      String userLoc = 'Ubicación no disponible';
 
       try {
         final currentSessionId = (m['sessionId'] ?? '') as String;
         if (currentSessionId.isNotEmpty) {
-          final sessionSnap =
-              await LocalFirestore.instance
-                  .collection('sesiones')
-                  .doc(currentSessionId)
-                  .get();
+          final sessionSnap = await LocalFirestore.instance
+              .collection('sesiones')
+              .doc(currentSessionId)
+              .get();
           final sessionData = sessionSnap.data();
-          final usuarioId = sessionData?['userId'] as String?;
+          final usuarioId = sessionData['userId'] as String?;
           if (usuarioId != null && usuarioId.isNotEmpty) {
-            final userSnap =
-                await LocalFirestore.instance
-                    .collection('usuarios')
-                    .doc(usuarioId)
-                    .get();
+            final userSnap = await LocalFirestore.instance
+                .collection('usuarios')
+                .doc(usuarioId)
+                .get();
             final udata = userSnap.data();
-            userName = udata?['nombre'] as String? ?? userName;
-            userEmail = udata?['email'] as String? ?? userEmail;
-            userProf = udata?['profesion'] as String? ?? userProf;
-            userLoc = udata?['ubicacion'] as String? ?? userLoc;
+            userName = udata['nombre'] as String? ?? userName;
+            userEmail = udata['email'] as String? ?? userEmail;
+            userProf = udata['profesion'] as String? ?? userProf;
+            userLoc = udata['ubicacion'] as String? ?? userLoc;
           }
         }
       } catch (e) {
-        debugPrint('[PDF] Error cargando datos de usuario: $e');
+        debugPrint('[PDF] Error cargando usuario: $e');
       }
 
-      // â”€â”€â”€ 3) LEER DATOS DEL PRODUCTOR (subcolecciÃ³n) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-      String prodTexto = 'No hay datos del productor';
-      final datosProductorWidgets = <pw.Widget>[];
-      {
-        final prodQuery =
-            await LocalFirestore.instance
-                .collection('sesiones')
-                .doc(_sessionId)
-                .collection('datos_productor')
-                .limit(1)
-                .get();
-        if (prodQuery.docs.isNotEmpty) {
-          _producerData = prodQuery.docs.first.data();
-        }
-      }
-      if (_producerData != null && _producerData!.isNotEmpty) {
-        // Definimos exclusivamente los cuatro campos deseados:
-        final camposDeseados = <String>[
-          'unidad_produccion',
-          'ubicacion',
-          'estado',
-          'municipio',
-        ];
-        for (final key in camposDeseados) {
-          final valor = _producerData![key];
-          if (valor != null && valor.toString().trim().isNotEmpty) {
-            datosProductorWidgets.add(
-              pw.Text(
-                'â€¢ $key: ${valor.toString()}',
-                style: pw.TextStyle(fontSize: 11),
-              ),
-            );
-          }
-        }
-        prodTexto = 'Datos del productor:';
-      }
+      final Uint8List logoBytes = (await rootBundle.load(
+        'assets/icons/logoapp2.png',
+      )).buffer.asUint8List();
 
-      // â”€â”€â”€ 4) CARGAR LOGO DE ASSETS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-      final Uint8List logoBytes =
-          (await rootBundle.load(
-            'assets/icons/logoapp2.png',
-          )).buffer.asUint8List();
-
-      // â”€â”€â”€ 5) DECODIFICAR FOTO DEL ANIMAL (SI HAY) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       Uint8List? fotoBytes;
       if (imageBase64 != null) {
         try {
@@ -1252,30 +975,13 @@ class _AnimalEvaluationScreenState extends State<AnimalEvaluationScreen> {
         }
       }
 
-      // â”€â”€â”€ 6) CALCULAR PROMEDIO DE EPMURAS PARA LA SESIÃ“N â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-      List<Map<String, dynamic>> todasEvalMap = [];
-      try {
-        todasEvalMap = await _cargarTodasLasEvaluaciones();
-      } catch (_) {}
-      final currentSessionId = _sessionId ?? '';
-      final evalsActualSession =
-          todasEvalMap
-              .where(
-                (e) => (e['sessionId']?.toString() ?? '') == currentSessionId,
-              )
-              .toList();
-      final promedioSesionMap = _calcularPromedioSesion(evalsActualSession);
-
-      // â”€â”€â”€ 7) CREAR EL DOCUMENTO PDF â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       final pdf = pw.Document();
-
       pdf.addPage(
         pw.MultiPage(
           pageFormat: PdfPageFormat.a4,
           margin: const pw.EdgeInsets.all(32),
           build: (pw.Context context) {
-            // 7.1) Encabezado con logo e lÃ­nea azul
-            final header = <pw.Widget>[
+            return [
               pw.Center(
                 child: pw.Image(
                   pw.MemoryImage(logoBytes),
@@ -1283,142 +989,61 @@ class _AnimalEvaluationScreenState extends State<AnimalEvaluationScreen> {
                   height: 40,
                 ),
               ),
-              pw.Divider(color: PdfColors.blue, thickness: 2),
+              pw.Divider(color: PdfColors.green900, thickness: 2),
               pw.SizedBox(height: 8),
-            ];
-
-            // 7.2) Datos del usuario (ya cargados correctamente)
-            final datosUsuario = <pw.Widget>[
-              pw.Text('Usuario: $userName', style: pw.TextStyle(fontSize: 12)),
-              pw.Text('Correo: $userEmail', style: pw.TextStyle(fontSize: 12)),
-              pw.Text(
-                'ProfesiÃ³n: $userProf',
-                style: pw.TextStyle(fontSize: 12),
-              ),
-              pw.Text('UbicaciÃ³n: $userLoc', style: pw.TextStyle(fontSize: 12)),
-              pw.Divider(color: PdfColors.grey),
-            ];
-
-            // 7.3) Encabezado del productor (sÃ³lo si hay algo para mostrar)
-            final encabezadoProductor = <pw.Widget>[];
-            if (datosProductorWidgets.isNotEmpty) {
-              encabezadoProductor.add(
-                pw.Text(prodTexto, style: pw.TextStyle(fontSize: 12)),
-              );
-              encabezadoProductor.add(pw.SizedBox(height: 4));
-              encabezadoProductor.addAll(datosProductorWidgets);
-              encabezadoProductor.add(pw.Divider(color: PdfColors.grey));
-              encabezadoProductor.add(pw.SizedBox(height: 8));
-            }
-
-            // 7.4) FOTO DEL ANIMAL + DATOS DEL ANIMAL COMO TABLA
-            final detallesAnimal = <String>[
-              'NÃºmero: $numero',
-              'Registro (RGN): $registro',
-              'Sexo: $sexo',
-              'Estado: $estado',
-              'Fecha Nacimiento: $fechaNac',
-              'Fecha Destete: $fechaDest',
-              'Peso Nacimiento: $pesoNac',
-              'Peso Destete: $pesoDest',
-              'Peso Ajustado: $pesoAjus',
-              'Edad (dÃ­as): $edadDias',
-            ];
-
-            final datosAnimalTable = pw.Table(
-              columnWidths: {
-                0: pw.FixedColumnWidth(200), // ancho fijo para la foto
-                1: pw.FlexColumnWidth(), // el resto para los bullets
-              },
-              children: [
-                pw.TableRow(
-                  children: [
-                    // Celda 0: imagen o â€œSin fotoâ€
-                    if (fotoBytes != null)
-                      pw.Image(
-                        pw.MemoryImage(fotoBytes),
-                        width: 200,
-                        height: 200,
-                        fit: pw.BoxFit.cover,
-                      )
-                    else
-                      pw.Container(
-                        width: 200,
-                        height: 200,
-                        decoration: pw.BoxDecoration(
-                          border: pw.Border.all(color: PdfColors.grey),
-                        ),
-                        child: pw.Center(child: pw.Text('Sin foto')),
-                      ),
-
-                    // Celda 1: lista de viÃ±etas
-                    pw.Padding(
-                      padding: const pw.EdgeInsets.only(left: 10),
-                      child: pw.Column(
-                        crossAxisAlignment: pw.CrossAxisAlignment.start,
-                        children:
-                            detallesAnimal
-                                .map((texto) => pw.Bullet(text: texto))
-                                .toList(),
-                      ),
-                    ),
-                  ],
-                ),
+              pw.Text('Evaluador: $userName', style: const pw.TextStyle(fontSize: 12)),
+              pw.Text('Email: $userEmail', style: const pw.TextStyle(fontSize: 12)),
+              pw.Text('Profesión: $userProf', style: const pw.TextStyle(fontSize: 12)),
+              pw.Text('Ubicación: $userLoc', style: const pw.TextStyle(fontSize: 12)),
+              if (_producerData != null && _producerData!.isNotEmpty) ...[
+                pw.Divider(color: PdfColors.grey),
+                pw.Text('Productor: ${_producerData!['unidad_produccion'] ?? ''}', style: const pw.TextStyle(fontSize: 11)),
               ],
-            );
-
-            // 7.5) RESULTADOS EPMURAS (tabla sencilla)
-            final tablaEpm = <pw.Widget>[
+              pw.Divider(color: PdfColors.grey),
+              pw.SizedBox(height: 8),
+              pw.Text(
+                'Datos del Animal: N° $numero | RGN $registro | Sexo: $sexo | Estado: $estado',
+                style: pw.TextStyle(
+                  fontSize: 12,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+              pw.Text(
+                'F. Nac: $fechaNac | F. Dest: $fechaDest | P. Nac: $pesoNac kg | P. Dest: $pesoDest kg | P. Ajus: $pesoAjus kg | Edad: $edadDias días',
+                style: const pw.TextStyle(fontSize: 11),
+              ),
+              pw.SizedBox(height: 12),
+              if (fotoBytes != null)
+                pw.Center(
+                  child: pw.Image(
+                    pw.MemoryImage(fotoBytes),
+                    width: 250,
+                    height: 180,
+                    fit: pw.BoxFit.cover,
+                  ),
+                ),
               pw.SizedBox(height: 16),
-              pw.Header(level: 1, text: 'Resultados EPMURAS'),
+              pw.Header(level: 1, text: 'Evaluación EPMURAS'),
               pw.Table.fromTextArray(
-                headers: ['Letra', 'Valor', 'Promedio SesiÃ³n'],
-                data:
-                    epmurasForPDF.keys.map((letra) {
-                      final val = epmurasForPDF[letra] ?? '-';
-                      final promDouble = promedioSesionMap[letra] ?? 0.0;
-                      final prom = promDouble.toStringAsFixed(2);
-                      return [letra, val, prom];
-                    }).toList(),
+                headers: ['Característica', 'Calificación (1-6)'],
+                data: epmurasForPDF.entries
+                    .map((e) => [e.key, e.value])
+                    .toList(),
                 border: pw.TableBorder.all(color: PdfColors.grey300),
                 headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                headerDecoration: pw.BoxDecoration(color: PdfColors.grey200),
+                headerDecoration: const pw.BoxDecoration(color: PdfColors.grey200),
               ),
-            ];
-
-            // 7.6) Pie de pÃ¡gina
-            final footer = <pw.Widget>[
-              pw.Divider(color: PdfColors.blue, thickness: 2),
-              pw.Center(
-                child: pw.Image(
-                  pw.MemoryImage(logoBytes),
-                  width: 100,
-                  height: 30,
+              pw.SizedBox(height: 16),
+              if (_comentarioController.text.isNotEmpty)
+                pw.Text(
+                  'Observación Técnica: ${_comentarioController.text}',
+                  style: const pw.TextStyle(fontSize: 11),
                 ),
-              ),
-              pw.SizedBox(height: 4),
-              pw.Align(
-                alignment: pw.Alignment.centerRight,
-                child: pw.Text(
-                  'Generado: ${DateTime.now().toString().substring(0, 19)}',
-                  style: pw.TextStyle(fontSize: 9, color: PdfColors.grey),
-                ),
-              ),
-            ];
-
-            return [
-              ...header,
-              ...datosUsuario,
-              ...encabezadoProductor,
-              datosAnimalTable,
-              ...tablaEpm,
-              ...footer,
             ];
           },
         ),
       );
 
-      // â”€â”€â”€ 8) COMPARTIR / GUARDAR EL PDF â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       final pdfBytes = await pdf.save();
       await Printing.sharePdf(
         bytes: pdfBytes,
@@ -1426,565 +1051,1558 @@ class _AnimalEvaluationScreenState extends State<AnimalEvaluationScreen> {
       );
     } catch (e) {
       debugPrint('[PDF] Error generando PDF: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('âŒ Error al generar PDF: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
     }
-  }
-
-  void _mostrarOpcionesImagen() {
-    showModalBottomSheet(
-      context: context,
-      builder:
-          (ctx) => Wrap(
-            children: [
-              ListTile(
-                leading: const Icon(Icons.visibility),
-                title: const Text('Ver imagen actual'),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  showDialog(
-                    context: context,
-                    builder:
-                        (_) => AlertDialog(
-                          content: Image.memory(_imageBytes!),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: const Text('Cerrar'),
-                            ),
-                          ],
-                        ),
-                  );
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.photo_camera),
-                title: const Text('Reemplazar imagen'),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  _pickImage();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.delete),
-                title: const Text('Quitar imagen'),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  setState(() {
-                    _imageBytes = null;
-                    _hasChanged = true;
-                  });
-                },
-              ),
-            ],
-          ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-    // Si aÃºn estoy cargando datos de Firestore:
     if (_loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        backgroundColor: Color(0xFFF3F8F5),
+        body: Center(
+          child: CircularProgressIndicator(color: Color(0xFF0F3B27)),
+        ),
+      );
     }
 
-    return CustomAppScaffold(
-      currentIndex: 2,
-      title: widget.isEditing ? 'Editar EvaluaciÃ³n' : 'EvaluaciÃ³n',
-      showBackButton: true,
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // â”€â”€â”€ BotÃ³n para ver sesiones y evaluaciones â”€â”€â”€
-              Center(
-                child: ElevatedButton.icon(
-                  onPressed: _mostrarConteosDialog,
-                  icon: const Icon(Icons.list, color: Colors.white),
-                  label: const Text(
-                    'Ver sesiones y evaluaciones',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.indigo[700],
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 12,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // â”€â”€â”€â”€ Campo: NÃºmero â”€â”€â”€â”€
-              _buildLabeledTextField('NÃºmero', controller: _numeroController),
-
-              // â”€â”€â”€ Campo: Registro Animal (RGN) â”€â”€â”€
-              _buildLabeledTextField(
-                'Registro (RGN)',
-                controller: _registroController,
-              ),
-
-              // â”€ Dropdowns: Estado del Animal y Sexo â”€
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildLabeledDropdown(
-                      'Estado del Animal',
-                      _animalStates,
-                      value: _selectedEstadoAnimal,
-                      onChanged: (val) {
-                        setState(() {
-                          _selectedEstadoAnimal = val;
-                          _markChanged();
-                          if (!_animalStates.contains(_selectedEstadoAnimal)) {
-                            _selectedEstadoAnimal = null;
-                          }
-                        });
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildLabeledDropdown(
-                      'Sexo',
-                      ['Macho', 'Hembra'],
-                      value: _selectedSexo,
-                      onChanged: (val) {
-                        setState(() {
-                          _selectedSexo = val;
-                          _markChanged();
-                          if (!_animalStates.contains(_selectedEstadoAnimal)) {
-                            _selectedEstadoAnimal = null;
-                          }
-                        });
-                      },
-                    ),
-                  ),
-                ],
-              ),
-
-              // â”€â”€â”€ Fecha Nacimiento / Fecha Destete â”€â”€â”€
-              // â”€â”€ Fechas: Nacimiento y Destete â”€â”€
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _fechaNacController,
-                      readOnly: true,
-                      decoration: InputDecoration(
-                        labelText: 'Fecha Nacimiento',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        prefixIcon: const Icon(Icons.calendar_today),
-                      ),
-                      onTap: () => _selectDate(context, _fechaNacController),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextField(
-                      controller: _fechaDestController,
-                      readOnly: true,
-                      decoration: InputDecoration(
-                        labelText: 'Fecha Destete',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        prefixIcon: const Icon(Icons.calendar_today),
-                      ),
-                      onTap: () => _selectDate(context, _fechaDestController),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // â”€â”€ Pesos: Nacimiento y Destete â”€â”€
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _pesoNacController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: 'Peso al nacer (kg)',
-                        prefixIcon: const Icon(
-                          Icons.monitor_weight,
-                          color: Colors.orange,
-                        ),
-                        filled: true,
-                        fillColor: Colors.orange[50],
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      onChanged: (_) => _markChanged(),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: TextField(
-                      controller: _pesoDestController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: 'Peso al destete (kg)',
-                        prefixIcon: const Icon(
-                          Icons.scale,
-                          color: Colors.deepPurple,
-                        ),
-                        filled: true,
-                        fillColor: Colors.purple[50],
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      onChanged: (_) => _markChanged(),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _pesoAjusController,
-                      readOnly: true,
-                      decoration: InputDecoration(
-                        labelText: 'Peso Ajustado (kg)',
-                        prefixIcon: const Icon(Icons.fitness_center),
-                        filled: true,
-                        fillColor: Colors.green[50],
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: TextField(
-                      controller: _edadDiasController,
-                      readOnly: true,
-                      decoration: InputDecoration(
-                        labelText: 'Edad (dÃ­as)',
-                        prefixIcon: const Icon(Icons.calendar_today),
-                        filled: true,
-                        fillColor: Colors.blue[50],
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 12),
-
-              // â”€â”€â”€â”€â”€ Foto del animal â”€â”€â”€â”€â”€
-              const Text('Foto del animal:'),
-              const SizedBox(height: 8),
-              GestureDetector(
-                onTap: () {
-                  if (_imageBytes != null) {
-                    _mostrarOpcionesImagen();
-                  } else {
-                    _pickImage();
-                  }
-                },
-                child: Container(
-                  height: 180,
-
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.black54),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child:
-                      _imageBytes != null
-                          ? ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.memory(
-                              _imageBytes!,
-                              fit: BoxFit.cover,
-                            ),
-                          )
-                          : const Center(
-                            child: Text('Toca para cargar o tomar foto'),
-                          ),
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ EPMURAS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-              const Text(
-                'EPMURAS:',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              _buildEpmurasInputs(),
-
-              const SizedBox(height: 20),
-
-              // â”€â”€â”€â”€â”€ Campo: Comentario â”€â”€â”€â”€â”€
-              _buildLabeledTextField(
-                'Comentario del evaluador (PDF)',
-                controller: _comentarioController,
-                maxLines: 3,
-              ),
-              const SizedBox(height: 20),
-
-              // â”€â”€â”€â”€â”€ Botones Guardar / Actualizar / Nuevo / Cancelar â”€â”€â”€â”€â”€
-              Align(
-                alignment: Alignment.bottomRight,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+    return Scaffold(
+      backgroundColor: const Color(0xFFF3F8F5),
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildTopHeader(),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // â”€ BotÃ³n Guardar o Actualizar â”€ ahora llama a _confirmGuardar()
-                    ElevatedButton(
-                      onPressed: () {
-                        _confirmGuardar();
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            widget.isEditing
-                                ? (_hasChanged
-                                    ? Colors.orange[700]
-                                    : Colors.grey)
-                                : Colors.blue[700],
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 12,
-                        ),
-                      ),
-                      child: Text(
-                        widget.isEditing ? 'Actualizar' : 'Guardar',
-                        style: const TextStyle(color: Colors.white),
+                    _buildLoteHeader(),
+                    const SizedBox(height: 16),
+                    _buildIdentificationSection(),
+                    const SizedBox(height: 16),
+                    _buildGuiaVisualSection(),
+                    const SizedBox(height: 16),
+                    _buildEpmurasSection(),
+                    const SizedBox(height: 16),
+                    _buildEliteSummaryCard(),
+                    const SizedBox(height: 16),
+                    _buildObservacionTecnicaSection(),
+                    const SizedBox(height: 20),
+                    _buildBottomActions(),
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: const CustomBottomNavBar(currentIndex: 2),
+    );
+  }
+
+  // 1. Top Bar Navigation
+  Widget _buildTopHeader() {
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.arrow_back, color: Color(0xFF0F3B27)),
+            onPressed: () => Navigator.pop(context),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Row(
+              children: [
+                const Text(
+                  'Eval...',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0F3B27),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFC3EAD5),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Text(
+                    'En Brete • Manga 02',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF0F3B27),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.menu_book_outlined,
+                    size: 20, color: Color(0xFF0F3B27)),
+                onPressed: _mostrarConteosDialog,
+                constraints: const BoxConstraints(),
+                padding: const EdgeInsets.all(6),
+              ),
+              IconButton(
+                icon: const Icon(Icons.bolt, size: 20, color: Color(0xFF0F3B27)),
+                onPressed: () {},
+                constraints: const BoxConstraints(),
+                padding: const EdgeInsets.all(6),
+              ),
+              IconButton(
+                icon: const Icon(Icons.cloud_outlined,
+                    size: 20, color: Color(0xFF0F3B27)),
+                onPressed: () {},
+                constraints: const BoxConstraints(),
+                padding: const EdgeInsets.all(6),
+              ),
+              const SizedBox(width: 4),
+              const CircleAvatar(
+                radius: 14,
+                backgroundColor: Color(0xFF0F3B27),
+                child: Icon(Icons.person_outline, size: 16, color: Colors.white),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 2. Lote Banner & Animal Carousel Selector
+  Widget _buildLoteHeader() {
+    final sessionTitle = _producerData?['nombre_lote'] as String? ??
+        _sessionData?['nombre_lote'] as String? ??
+        _sessionData?['nombre_sesion'] as String? ??
+        'Lote Toros Reproductores 2024';
+
+    final totalReg = _sessionEvaluations.length;
+    int currentIdx = widget.isEditing ? 1 : totalReg + 1;
+    if (widget.isEditing && widget.docId != null) {
+      final found = _sessionEvaluations.indexWhere((e) => e['evalId'] == widget.docId);
+      if (found != -1) {
+        currentIdx = found + 1;
+      }
+    }
+    final totalDisplay = widget.isEditing ? (totalReg == 0 ? 1 : totalReg) : totalReg + 1;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF0F3B27),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      sessionTitle,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF0F3B27),
                       ),
                     ),
-
-                    const SizedBox(width: 12),
-
-                    // â”€ BotÃ³n â€œNuevoâ€ (solo si no estamos editando) â”€ (sin cambios)
-                    if (!widget.isEditing)
-                      ElevatedButton.icon(
-                        onPressed: _guardarYNuevo,
-                        icon: const Icon(Icons.add, color: Colors.white),
-                        label: const Text(
-                          'Nuevo',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green[700],
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
+                    const SizedBox(height: 2),
+                    RichText(
+                      text: TextSpan(
+                        style: const TextStyle(fontSize: 12, color: Colors.grey),
+                        children: [
+                          TextSpan(
+                            text: 'Animal $currentIdx de $totalDisplay ',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF0F3B27),
+                            ),
                           ),
-                        ),
-                      ),
-
-                    const SizedBox(width: 12),
-
-                    // â”€ BotÃ³n â€œCancelarâ€ â”€ ahora llama a _confirmCancelar()
-                    ElevatedButton(
-                      onPressed: () {
-                        _confirmCancelar();
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.grey[600],
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                      ),
-                      child: const Text(
-                        'Cancelar',
-                        style: TextStyle(color: Colors.white),
+                          const TextSpan(text: 'en Brete • Manga 02'),
+                        ],
                       ),
                     ),
                   ],
                 ),
               ),
-
-              const SizedBox(height: 24),
+              IconButton(
+                icon: const Icon(Icons.article_outlined,
+                    color: Colors.grey, size: 20),
+                onPressed: _mostrarConteosDialog,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  // Construye inputs de EPMURAS
-  Widget _buildEpmurasInputs() {
-    final letrasIzquierda = ['E', 'P', 'M', 'U'];
-    final letrasDerecha = ['R', 'A', 'S'];
-
-    return Center(
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Columna izquierda
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children:
-                letrasIzquierda
-                    .map(
-                      (letra) => Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 6.0),
-                        child: _buildLetraInput(letra),
-                      ),
-                    )
-                    .toList(),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: totalDisplay > 0 ? (currentIdx / totalDisplay).clamp(0.0, 1.0) : 1.0,
+              backgroundColor: const Color(0xFFE8F3EC),
+              color: const Color(0xFF0F3B27),
+              minHeight: 4,
+            ),
           ),
-          const SizedBox(width: 40),
-          // Columna derecha
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children:
-                letrasDerecha
-                    .map(
-                      (letra) => Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 6.0),
-                        child: _buildLetraInput(letra),
-                      ),
-                    )
-                    .toList(),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F3EC),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.chevron_left,
+                    size: 20, color: Color(0xFF0F3B27)),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      ..._sessionEvaluations.map((item) {
+                        final numStr = item['numero']?.toString() ?? '—';
+                        final isEditingThis = widget.isEditing && item['evalId'] == widget.docId;
+                        return _buildAnimalChip(
+                          isEditingThis ? '• #$numStr' : '✔ #$numStr',
+                          isActive: isEditingThis,
+                          isChecked: !isEditingThis,
+                          onTap: () {
+                            if (!isEditingThis) {
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => AnimalEvaluationScreen.edit(
+                                    docId: item['evalId'],
+                                    initialData: item,
+                                  ),
+                                  settings: RouteSettings(
+                                    arguments: {'sessionId': item['sessionId'] ?? _sessionId},
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                        );
+                      }),
+                      if (!widget.isEditing)
+                        _buildAnimalChip(
+                          '• #${_numeroController.text.trim().isEmpty ? 'nuevo' : _numeroController.text.trim()}',
+                          isActive: true,
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F3EC),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.chevron_right,
+                    size: 20, color: Color(0xFF0F3B27)),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildLetraInput(String letra) {
-    final maxItems = (letra == 'E' || letra == 'P' || letra == 'M') ? 6 : 4;
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 30,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: Colors.blue.shade100,
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Text(
-            letra,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+  Widget _buildAnimalChip(String label,
+      {bool isActive = false, bool isChecked = false, VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(right: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: isActive
+              ? const Color(0xFF0F3B27)
+              : isChecked
+                  ? const Color(0xFFE8F3EC)
+                  : const Color(0xFFF3F8F5),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isActive
+                ? const Color(0xFF0F3B27)
+                : isChecked
+                    ? const Color(0xFFC3EAD5)
+                    : Colors.grey.shade300,
           ),
         ),
-        const SizedBox(width: 10),
-        SizedBox(
-          width: 80,
-          height: 44,
-          child: DropdownButtonFormField<String>(
-            value: _epmuras[letra],
-            isExpanded: true,
-            decoration: const InputDecoration(
-              isDense: true,
-              contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-              border: OutlineInputBorder(),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            color: isActive
+                ? Colors.white
+                : isChecked
+                    ? const Color(0xFF0F3B27)
+                    : Colors.grey[700],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // 3. Identification & Basic Info Section
+  Widget _buildIdentificationSection() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF7FAF8),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE5EFE9)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.sell_outlined,
+                              size: 14, color: Colors.grey),
+                          SizedBox(width: 4),
+                          Text(
+                            'Arete Visual / RFID',
+                            style: TextStyle(fontSize: 11, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _numeroController,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF0F3B27),
+                              ),
+                              decoration: const InputDecoration(
+                                isDense: true,
+                                border: InputBorder.none,
+                                contentPadding: EdgeInsets.zero,
+                                prefixText: '#',
+                              ),
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.grey.shade300),
+                            ),
+                            child: const Icon(Icons.volume_up_outlined,
+                                size: 16, color: Color(0xFF0F3B27)),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF7FAF8),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE5EFE9)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.verified_outlined,
+                              size: 14, color: Colors.grey),
+                          SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              'Registro Genealógico (RGN)',
+                              style: TextStyle(fontSize: 10, color: Colors.grey),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _registroController,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF0F3B27),
+                              ),
+                              decoration: const InputDecoration(
+                                isDense: true,
+                                border: InputBorder.none,
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFC3EAD5),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Text(
+                              'PO',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF0F3B27),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Sex & Stage Toggles
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8F3EC),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => setState(() => _selectedSexo = 'Macho'),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: _selectedSexo == 'Macho'
+                                  ? const Color(0xFF0F3B27)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              'Macho',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: _selectedSexo == 'Macho'
+                                    ? Colors.white
+                                    : Colors.grey[700],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => setState(() => _selectedSexo = 'Hembra'),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: _selectedSexo == 'Hembra'
+                                  ? const Color(0xFF0F3B27)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              'Hembra',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: _selectedSexo == 'Hembra'
+                                    ? Colors.white
+                                    : Colors.grey[700],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Container(
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8F3EC),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () =>
+                              setState(() => _selectedEstadoAnimal = 'Desarrollo'),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: _selectedEstadoAnimal == 'Desarrollo'
+                                  ? const Color(0xFF0F3B27)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              'Desarrollo',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: _selectedEstadoAnimal == 'Desarrollo'
+                                    ? Colors.white
+                                    : Colors.grey[700],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () =>
+                              setState(() => _selectedEstadoAnimal = 'Adulto'),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: _selectedEstadoAnimal == 'Adulto'
+                                  ? const Color(0xFF0F3B27)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              'Adulto',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: _selectedEstadoAnimal == 'Adulto'
+                                    ? Colors.white
+                                    : Colors.grey[700],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // 6 Date & Weight Grid Cards
+          Row(
+            children: [
+              Expanded(
+                child: _buildGridInfoCard(
+                  icon: Icons.calendar_today_outlined,
+                  label: 'F. NAC.',
+                  controller: _fechaNacController,
+                  onTap: () => _selectDate(context, _fechaNacController),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildGridInfoCard(
+                  icon: Icons.calendar_month_outlined,
+                  label: 'F. DESTETE',
+                  controller: _fechaDestController,
+                  onTap: () => _selectDate(context, _fechaDestController),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildGridInfoCard(
+                  icon: Icons.hourglass_empty_outlined,
+                  label: 'EDAD',
+                  controller: _edadDiasController,
+                  unit: 'días',
+                  highlight: true,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _buildGridInfoCard(
+                  icon: Icons.scale_outlined,
+                  label: 'P. NACER',
+                  controller: _pesoNacController,
+                  unit: 'kg',
+                  isEditable: true,
+                  bgColor: const Color(0xFFFDF4EE),
+                  iconColor: Colors.orange[800],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildGridInfoCard(
+                  icon: Icons.monitor_weight_outlined,
+                  label: 'P. DESTETE',
+                  controller: _pesoDestController,
+                  unit: 'kg',
+                  isEditable: true,
+                  bgColor: const Color(0xFFE8F3EC),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildGridInfoCard(
+                  icon: Icons.fitness_center_outlined,
+                  label: 'P. AJUSTADO',
+                  controller: _pesoAjusController,
+                  unit: 'kg',
+                  bgColor: const Color(0xFFE8F3EC),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGridInfoCard({
+    required IconData icon,
+    required String label,
+    required TextEditingController controller,
+    String? unit,
+    Color? bgColor,
+    Color? iconColor,
+    bool highlight = false,
+    bool isEditable = false,
+    VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: bgColor ?? const Color(0xFFF7FAF8),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: highlight ? const Color(0xFFC3EAD5) : const Color(0xFFE5EFE9),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 12, color: iconColor ?? Colors.grey[600]),
+                const SizedBox(width: 4),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                    color: iconColor ?? Colors.grey[700],
+                  ),
+                ),
+              ],
             ),
-            style: const TextStyle(fontSize: 16, color: Colors.black),
-            iconSize: 24,
-            items: List.generate(
-              maxItems,
-              (i) => DropdownMenuItem(
-                value: '${i + 1}',
-                child: Center(child: Text('${i + 1}')),
+            const SizedBox(height: 4),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Expanded(
+                  child: isEditable
+                      ? TextField(
+                          controller: controller,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(RegExp(r'^\d*[\.,]?\d*')),
+                          ],
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: iconColor ?? const Color(0xFF1C4331),
+                          ),
+                          decoration: const InputDecoration(
+                            isDense: true,
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.zero,
+                            hintText: '—',
+                            hintStyle: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        )
+                      : Text(
+                          controller.text.isEmpty ? '—' : controller.text,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: highlight
+                                ? const Color(0xFF0F3B27)
+                                : const Color(0xFF1C4331),
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                ),
+                if (unit != null) ...[
+                  const SizedBox(width: 2),
+                  Text(
+                    unit,
+                    style: TextStyle(fontSize: 10, color: iconColor ?? Colors.grey[600]),
+                  ),
+                ],
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 4. Guía Visual Morfométrica Section
+  Widget _buildGuiaVisualSection() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8F3EC),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.aspect_ratio,
+                        size: 16, color: Color(0xFF0F3B27)),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Guía Visual\nMorfométrica',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF0F3B27),
+                      height: 1.1,
+                    ),
+                  ),
+                ],
+              ),
+              GestureDetector(
+                onTap: () => setState(() => _showVectores = !_showVectores),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFC3EAD5),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _showVectores
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
+                        size: 14,
+                        color: const Color(0xFF0F3B27),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        _showVectores ? 'Ocultar Vectores' : 'Mostrar Vectores',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF0F3B27),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Interactive Image Area
+          Container(
+            height: 220,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              color: const Color(0xFFE5EFE9),
+              border: Border.all(color: const Color(0xFFC3EAD5)),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: _imageBytes != null
+                        ? Image.memory(_imageBytes!, fit: BoxFit.cover)
+                        : Container(
+                            color: const Color(0xFFE5EFE9),
+                            child: Center(
+                              child: Image.asset(
+                                'assets/icons/logo1.png',
+                                height: 90,
+                                fit: BoxFit.contain,
+                                errorBuilder: (ctx, err, stack) {
+                                  return const Icon(
+                                    Icons.pets,
+                                    size: 50,
+                                    color: Color(0xFF0F3B27),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                  ),
+                  // Top Recomended Badge Overlay
+                  Positioned(
+                    top: 10,
+                    left: 10,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0F3B27).withValues(alpha: 0.85),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.camera_alt,
+                              size: 12, color: Colors.white),
+                          SizedBox(width: 4),
+                          Text(
+                            'Toma lateral 90° recomendada',
+                            style: TextStyle(fontSize: 10, color: Colors.white),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // Vector Overlay graphic representation
+                  if (_showVectores) ...[
+                    Positioned(
+                      top: 75,
+                      left: 60,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0F3B27).withValues(alpha: 0.9),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text(
+                          'E - Estructura',
+                          style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 95,
+                      right: 70,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0F3B27).withValues(alpha: 0.9),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text(
+                          'M - Musculatura ↗',
+                          style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  ],
+                  // Bottom Right Overlay Action Buttons
+                  Positioned(
+                    bottom: 10,
+                    right: 10,
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 32,
+                          height: 32,
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.zoom_in,
+                              size: 18, color: Color(0xFF0F3B27)),
+                        ),
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: _pickImage,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0F3B27),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: const Row(
+                              children: [
+                                Icon(Icons.camera_alt,
+                                    size: 14, color: Colors.white),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Capturar',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
-            onChanged: (val) {
-              setState(() {
-                _epmuras[letra] = val!;
-                _markChanged();
-              });
-            },
           ),
+        ],
+      ),
+    );
+  }
+
+  // 5. Evaluación EPMURAS Section
+  Widget _buildEpmurasSection() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8F3EC),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.tune,
+                        size: 16, color: Color(0xFF0F3B27)),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Evaluación\nEPMURAS',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF0F3B27),
+                      height: 1.1,
+                    ),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  Text(
+                    'Toque para calificar (1–6)',
+                    style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                  ),
+                  const SizedBox(width: 4),
+                  IconButton(
+                    icon: const Icon(Icons.refresh,
+                        size: 16, color: Colors.grey),
+                    onPressed: () {
+                      setState(() {
+                        _epmuras.updateAll((k, v) => '5');
+                      });
+                    },
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          // Grid 4 traits top row
+          Row(
+            children: [
+              Expanded(child: _buildEpmurasCard('E', 'Estructura')),
+              const SizedBox(width: 8),
+              Expanded(child: _buildEpmurasCard('P', 'Precocidad')),
+              const SizedBox(width: 8),
+              Expanded(child: _buildEpmurasCard('M', 'Musculatura')),
+              const SizedBox(width: 8),
+              Expanded(child: _buildEpmurasCard('U', 'Umbigo')),
+            ],
+          ),
+          const SizedBox(height: 10),
+          // Grid 3 traits bottom row
+          Row(
+            children: [
+              Expanded(child: _buildEpmurasCard('R', 'Racial')),
+              const SizedBox(width: 8),
+              Expanded(child: _buildEpmurasCard('A', 'Aplomos')),
+              const SizedBox(width: 8),
+              Expanded(child: _buildEpmurasCard('S', 'Sexualidad')),
+              const SizedBox(width: 8),
+              const Expanded(child: SizedBox()), // spacer for 4-column alignment
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.circle, size: 8, color: Color(0xFF0F3B27)),
+                  SizedBox(width: 4),
+                  Text(
+                    'Puntaje lineal 1 (Mínimo) a 6 (Óptimo)',
+                    style: TextStyle(fontSize: 10, color: Colors.grey),
+                  ),
+                ],
+              ),
+              GestureDetector(
+                onTap: () => _openEpmurasSelector('E'),
+                child: const Row(
+                  children: [
+                    Text(
+                      'Abrir selector',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF0F3B27),
+                      ),
+                    ),
+                    Icon(Icons.open_in_new,
+                        size: 12, color: Color(0xFF0F3B27)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEpmurasCard(String letra, String label) {
+    final val = _epmuras[letra] ?? '-';
+    return GestureDetector(
+      onTap: () => _openEpmurasSelector(letra),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF3F8F5),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE5EFE9)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: const BoxDecoration(
+                color: Color(0xFF0F3B27),
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                letra,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1C4331),
+              ),
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F3B27),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                '$val /6',
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 6. Calificación Élite Summary Card
+  Widget _buildEliteSummaryCard() {
+    final prom = _promedioEpmuras;
+    final ratedCount = _criteriosCalificadosCount;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0A2B1C),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+            ),
+            child: Column(
+              children: [
+                Text(
+                  prom.toStringAsFixed(1),
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const Text(
+                  '/ 6.0',
+                  style: TextStyle(fontSize: 10, color: Colors.white70),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Text(
+                      'Calificación Élite ',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    Icon(Icons.stars, size: 16, color: Color(0xFFC3EAD5)),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '$ratedCount de 7 criterios calificados con precocidad superior',
+                  style: const TextStyle(fontSize: 10, color: Colors.white70),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            width: 44,
+            height: 44,
+            decoration: const BoxDecoration(
+              color: Color(0xFF006837),
+              shape: BoxShape.circle,
+            ),
+            alignment: Alignment.center,
+            child: const Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'TOP',
+                  style: TextStyle(
+                    fontSize: 8,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                Text(
+                  '5%',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 7. Observación Técnica Section
+  Widget _buildObservacionTecnicaSection() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.subject, color: Color(0xFF0F3B27), size: 18),
+                  SizedBox(width: 8),
+                  Text(
+                    'Observación Técnica',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF0F3B27),
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFC3EAD5),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.mic, size: 12, color: Color(0xFF0F3B27)),
+                    SizedBox(width: 4),
+                    Text(
+                      'Dictar en Manga',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF0F3B27),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          // Quick tags row
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildTagChip('+ Lomo amplio'),
+                _buildTagChip('+ Pigmentación'),
+                _buildTagChip('+ Dócil en brete'),
+                _buildTagChip('+ Aplomos correctos'),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          // Comment box
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF7FAF8),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE5EFE9)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: _comentarioController,
+                  maxLines: 3,
+                  style: const TextStyle(fontSize: 12, color: Color(0xFF1C4331)),
+                  decoration: const InputDecoration(
+                    hintText: 'Escriba las observaciones del animal...',
+                    border: InputBorder.none,
+                    isDense: true,
+                  ),
+                ),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    'Incluye en dictamen PDF',
+                    style: TextStyle(fontSize: 9, color: Colors.grey[500]),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTagChip(String tag) {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          final cleanTag = tag.replaceAll('+ ', '');
+          if (_comentarioController.text.isEmpty) {
+            _comentarioController.text = cleanTag;
+          } else {
+            _comentarioController.text += '. $cleanTag';
+          }
+          _markChanged();
+        });
+      },
+      child: Container(
+        margin: const EdgeInsets.only(right: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF3F8F5),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE5EFE9)),
+        ),
+        child: Text(
+          tag,
+          style: TextStyle(
+            fontSize: 11,
+            color: Colors.grey[800],
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // 8. Bottom Action Buttons & Links
+  Widget _buildBottomActions() {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  if (widget.isEditing) {
+                    _actualizarEvaluacionExistente();
+                  } else {
+                    _guardarYVolver();
+                  }
+                },
+                icon: const Icon(Icons.check_circle_outline, color: Colors.white),
+                label: Text(
+                  widget.isEditing
+                      ? 'Actualizar y Volver ➔'
+                      : 'Guardar y Siguiente ➔',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF0F3B27),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F3B27),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.add, color: Colors.white, size: 24),
+                onPressed: _guardarYNuevo,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            GestureDetector(
+              onTap: () {
+                _printOrSharePDF({
+                  'numero': _numeroController.text,
+                  'registro': _registroController.text,
+                  'sexo': _selectedSexo,
+                  'estado': _selectedEstadoAnimal,
+                  'fecha_nac': _fechaNacController.text,
+                  'fecha_dest': _fechaDestController.text,
+                  'peso_nac': _pesoNacController.text,
+                  'peso_dest': _pesoDestController.text,
+                  'peso_ajus': _pesoAjusController.text,
+                  'edad_dias': _edadDiasController.text,
+                  'epmuras': _epmuras,
+                  'image_base64': _imageBytes != null ? base64Encode(_imageBytes!) : null,
+                  'sessionId': _sessionId,
+                });
+              },
+              child: const Row(
+                children: [
+                  Icon(Icons.picture_as_pdf_outlined,
+                      size: 14, color: Color(0xFF0F3B27)),
+                  SizedBox(width: 4),
+                  Text(
+                    'Generar Certificado PDF',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF0F3B27),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            GestureDetector(
+              onTap: _confirmCancelar,
+              child: Text(
+                'Cancelar sesión',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey[700],
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );
   }
-
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  Widget _buildLabeledTextField(
-    String label, {
-    required TextEditingController controller,
-    List<TextInputFormatter>? inputFormatters,
-    int maxLines = 1,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label),
-          TextField(
-            controller: controller,
-            maxLines: maxLines,
-            keyboardType:
-                inputFormatters != null
-                    ? TextInputType.number
-                    : TextInputType.text,
-            inputFormatters: inputFormatters,
-            onChanged: (_) => _markChanged(),
-            decoration: const InputDecoration(border: OutlineInputBorder()),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  Widget _buildLabeledDropdown(
-    String label,
-    List<String> items, {
-    String? value,
-    ValueChanged<String?>? onChanged,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label),
-          DropdownButtonFormField<String>(
-            decoration: const InputDecoration(border: OutlineInputBorder()),
-            value: value,
-            items:
-                items
-                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                    .toList(),
-            onChanged: onChanged,
-          ),
-        ],
-      ),
-    );
-  }
-
-  List<String> get _animalStates {
-    if (_selectedSexo == 'Macho') {
-      return ['Mautes', 'Toretes', 'Toros'];
-    } else if (_selectedSexo == 'Hembra') {
-      return ['Mautas', 'Novillas', 'Vacas'];
-    }
-    return [];
-  }
 }
-
-
-
-

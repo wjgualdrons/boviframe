@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
@@ -39,6 +39,7 @@ import '../screens/new_detail_screen.dart';
 import '../screens/new_admin_create_screen.dart';
 import '../screens/new_admin_screen.dart';
 import '../screens/bases_teoricas.dart';
+import '../screens/about_screen.dart';
 import '../services/connectivity_service.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -123,6 +124,7 @@ class MyApp extends StatelessWidget {
             '/consulta_finca': (_) => ConsultaFincaScreen(),
             '/animal_evaluation': (_) => AnimalEvaluationScreen(),
             '/theory': (_) => const EpmurasInfographic(),
+            '/about': (_) => const AboutScreen(),
             '/editar_finca': (_) => EditarFincaScreen(),
             '/edit_session_selector': (_) => EditSessionSelectorScreen(),
             '/edit_producer': (context) {

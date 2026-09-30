@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:boviframe/services/local_firestore.dart';
 
 class EditarFincaScreen extends StatefulWidget {
@@ -18,7 +18,7 @@ class _EditarFincaScreenState extends State<EditarFincaScreen> {
     fincaData = args;
 
     // Inicializar controladores
-    for (final field in ['nombreUP', 'direccion', 'estado', 'municipio']) {
+    for (final field in ['nombreUP', 'nombre_lote', 'direccion', 'estado', 'municipio']) {
       controllers[field] = TextEditingController(text: fincaData[field] ?? '');
     }
   }
@@ -29,6 +29,7 @@ class _EditarFincaScreenState extends State<EditarFincaScreen> {
 
     final actualizada = {
       'nombreUP': controllers['nombreUP']!.text,
+      'nombre_lote': controllers['nombre_lote']!.text,
       'direccion': controllers['direccion']!.text,
       'estado': controllers['estado']!.text,
       'municipio': controllers['municipio']!.text,
@@ -41,7 +42,7 @@ class _EditarFincaScreenState extends State<EditarFincaScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Editar Finca')),
+      appBar: AppBar(title: const Text('Editar Finca')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -49,13 +50,14 @@ class _EditarFincaScreenState extends State<EditarFincaScreen> {
           child: Column(
             children: [
               _buildTextField('Nombre de la UP', 'nombreUP'),
-              _buildTextField('DirecciÃ³n', 'direccion'),
+              _buildTextField('Nombre del Lote a Evaluar', 'nombre_lote'),
+              _buildTextField('Dirección', 'direccion'),
               _buildTextField('Estado', 'estado'),
               _buildTextField('Municipio', 'municipio'),
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _guardarCambios,
-                child: Text('Guardar Cambios'),
+                child: const Text('Guardar Cambios'),
               ),
             ],
           ),

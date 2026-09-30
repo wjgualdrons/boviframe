@@ -57,3 +57,5 @@ android/local.properties
 cert_base64.txt
 cert.pem
 lib/firebase_options.dart
+.vercel
+.env*
