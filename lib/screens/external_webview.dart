@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 class ExternalWebViewScreen extends StatefulWidget {
@@ -16,18 +16,21 @@ class _ExternalWebViewScreenState extends State<ExternalWebViewScreen> {
   @override
   void initState() {
     super.initState();
+    String finalUrl = widget.url.trim();
+
+    if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+      finalUrl = 'https://$finalUrl';
+    }
 
     _controller =
         WebViewController()
           ..setJavaScriptMode(JavaScriptMode.unrestricted)
           ..setNavigationDelegate(
             NavigationDelegate(
-              onPageFinished: (_) {
-                setState(() => _isLoading = false);
-              },
+              onPageFinished: (_) => setState(() => _isLoading = false),
             ),
           )
-          ..loadRequest(Uri.parse(widget.url));
+          ..loadRequest(Uri.parse(finalUrl));
   }
 
   @override
@@ -35,7 +38,7 @@ class _ExternalWebViewScreenState extends State<ExternalWebViewScreen> {
     return Scaffold(
       appBar: AppBar(
         iconTheme: const IconThemeData(color: Colors.white),
-
+        centerTitle: true,
         title: const Text('Contenido completo'),
         titleTextStyle: const TextStyle(
           fontSize: 20,

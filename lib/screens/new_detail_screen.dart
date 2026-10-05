@@ -1,8 +1,9 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:boviframe/services/local_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'external_webview.dart';
 
 class NewsDetailScreen extends StatefulWidget {
   final String documentId;
@@ -299,64 +300,3 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
         ),
       ),
     );
-  }
-}
-
-class ExternalWebViewScreen extends StatefulWidget {
-  final String url;
-  const ExternalWebViewScreen({Key? key, required this.url}) : super(key: key);
-
-  @override
-  State<ExternalWebViewScreen> createState() => _ExternalWebViewScreenState();
-}
-
-class _ExternalWebViewScreenState extends State<ExternalWebViewScreen> {
-  late final WebViewController _controller;
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    String finalUrl = widget.url.trim();
-
-    if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
-      finalUrl = 'https://$finalUrl';
-    }
-
-    _controller =
-        WebViewController()
-          ..setJavaScriptMode(JavaScriptMode.unrestricted)
-          ..setNavigationDelegate(
-            NavigationDelegate(
-              onPageFinished: (_) => setState(() => _isLoading = false),
-            ),
-          )
-          ..loadRequest(Uri.parse(finalUrl));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        iconTheme: const IconThemeData(color: Colors.white),
-        centerTitle: true,
-        title: const Text('Contenido completo'),
-        titleTextStyle: const TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-        ),
-        backgroundColor: Colors.blue.shade800,
-      ),
-      body: Stack(
-        children: [
-          WebViewWidget(controller: _controller),
-          if (_isLoading) const Center(child: CircularProgressIndicator()),
-        ],
-      ),
-    );
-  }
-}
-
-
-

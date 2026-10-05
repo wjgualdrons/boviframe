@@ -98,7 +98,7 @@ class AboutScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 16),
                           const Text(
-                            "BOVIFrame Zootecnia",
+                            "BOVIFrame",
                             style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.bold,
@@ -114,7 +114,7 @@ class AboutScreen extends StatelessWidget {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: const Text(
-                              "Versión 1.0.0",
+                              "Versión 2.0.1",
                               style: TextStyle(
                                 fontSize: 12.5,
                                 fontWeight: FontWeight.w600,
@@ -219,7 +219,7 @@ class AboutScreen extends StatelessWidget {
 
                           _buildInfoRow("Desarrollo", "MV Gualdron Willians"),
                           const SizedBox(height: 10),
-                          _buildInfoRow("Especialidad", "Zootecnia y Producción Bovino"),
+                          _buildInfoRow("Especialidad", "ZMedico Veterinario"),
                           const SizedBox(height: 10),
                           _buildInfoRow("Compatibilidad", "Android / iOS / Web"),
                           const SizedBox(height: 10),
