@@ -4,6 +4,11 @@ import 'package:intl/intl.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'external_webview.dart';
+import 'package:printing/printing.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:pdf/pdf.dart';
 
 class NewsDetailScreen extends StatefulWidget {
   final String documentId;

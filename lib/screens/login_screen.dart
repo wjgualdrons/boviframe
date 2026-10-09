@@ -297,6 +297,26 @@ class _LoginScreenState extends State<LoginScreen> {
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          Center(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.94),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Image.asset(
+                                'assets/icons/logoapp3.png',
+                                height: 38,
+                                fit: BoxFit.contain,
+                                semanticLabel: 'BOVIFrame',
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+
                           // Title
                           const Text(
                             "Iniciar Sesión",

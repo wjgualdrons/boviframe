@@ -7,6 +7,7 @@ import 'package:flutter/rendering.dart';
 import 'package:boviframe/services/local_firestore.dart';
 import 'package:printing/printing.dart';
 import '../services/pdf_service.dart';
+import 'package:pdf/pdf.dart';
 
 class AnimalDetailScreen extends StatefulWidget {
   final Map<String, dynamic>? animalData;
