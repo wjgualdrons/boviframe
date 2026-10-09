@@ -321,8 +321,13 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
               color: const Color(0xFF00B4D8).withOpacity(0.18),
               borderRadius: BorderRadius.circular(7),
             ),
-            child: const Center(
-              child: Icon(Icons.pets, color: Color(0xFF0096C7), size: 16),
+            child: Center(
+              child: Image.asset(
+                'assets/img/icono_boviframe.png',
+                width: 16,
+                height: 16,
+                color: const Color(0xFF0096C7),
+              ),
             ),
           ),
           const SizedBox(width: 8),
