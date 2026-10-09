@@ -5,6 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:boviframe/services/local_firestore.dart';
 import './providers/settings_provider.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'dart:convert';
+import 'package:image_picker/image_picker.dart';
 import 'package:boviframe/widgets/custom_bottom_nav_bar.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -29,6 +31,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   User? _user;
   bool _isSaving = false;
+  String? _photoBase64;
 
   @override
   void initState() {
@@ -71,6 +74,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _nameController.text = nombre;
           _collegeController.text = colegio;
           _locationController.text = ubicacion;
+          _photoBase64 = data['foto_perfil'];
         });
 
         context.read<SettingsProvider>().setUserData(
@@ -111,6 +115,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         'colegio': newCole,
         'ubicacion': newUbic,
         'profesion': _selectedProfession,
+        if (_photoBase64 != null) 'foto_perfil': _photoBase64,
       }, SetOptions(merge: true));
 
       if (!mounted) return;
@@ -138,6 +143,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _signOut() async {
     await FirebaseAuth.instance.signOut();
+    await GoogleSignIn().signOut();
+    if (mounted) {
+      Navigator.of(context).pushReplacementNamed('/');
+    }
+  }
+
+  Future<void> _pickImage() async {
+    try {
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+      if (pickedFile != null) {
+        final bytes = await pickedFile.readAsBytes();
+        final base64Image = base64Encode(bytes);
+        setState(() {
+          _photoBase64 = base64Image;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error al seleccionar imagen')),
+        );
+      }
+    }
+  }
     if (!mounted) return;
     Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
   }
@@ -218,18 +248,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       child: Row(
                         children: [
-                          Container(
-                            width: 60,
-                            height: 60,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white.withOpacity(0.4), width: 1.5),
-                            ),
-                            child: const Icon(
-                              Icons.person_rounded,
-                              color: Colors.white,
-                              size: 32,
+                          GestureDetector(
+                            onTap: _pickImage,
+                            child: Stack(
+                              alignment: Alignment.bottomRight,
+                              children: [
+                                Container(
+                                  width: 60,
+                                  height: 60,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.2),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.white.withOpacity(0.4), width: 1.5),
+                                    image: _photoBase64 != null && _photoBase64!.isNotEmpty
+                                        ? DecorationImage(
+                                            image: MemoryImage(base64Decode(_photoBase64!)),
+                                            fit: BoxFit.cover,
+                                          )
+                                        : null,
+                                  ),
+                                  child: _photoBase64 == null || _photoBase64!.isEmpty
+                                      ? const Icon(
+                                          Icons.person_rounded,
+                                          color: Colors.white,
+                                          size: 32,
+                                        )
+                                      : null,
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(Icons.camera_alt, size: 14, color: Color(0xFF1B4931)),
+                                ),
+                              ],
                             ),
                           ),
                           const SizedBox(width: 14),

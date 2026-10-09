@@ -7,6 +7,7 @@ import 'package:boviframe/services/local_firestore.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class PdfService {
   // Colores del Design System institucional Boviframe
@@ -47,7 +48,8 @@ class PdfService {
     String evaluatorName = 'MV Gualdron Willians';
     String evaluatorCollegiate = 'MP 4.892';
 
-    String evaluatorEmail = 'mv.gualdron.willians@gmail.com';
+    final currentUser = FirebaseAuth.instance.currentUser;
+    String evaluatorEmail = currentUser?.email ?? 'mv.gualdron.willians@gmail.com';
 
     if (sid.isNotEmpty) {
       try {
