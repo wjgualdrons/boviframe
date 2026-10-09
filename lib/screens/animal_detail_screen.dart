@@ -185,11 +185,6 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
   }
 
   Future<Uint8List> _generatePdfBytes() async {
-    await WidgetsBinding.instance.endOfFrame;
-    final animalImg = await _capture(_animalImageKey);
-    final radarImg = await _capture(_radarKey);
-    final barImg = await _capture(_barKey);
-
     final fullData = {
       ..._data,
       'comentario': widget.animalData?['comentario']?.toString().trim() ?? '',
@@ -197,9 +192,7 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
 
     return PdfService.generateAnimalPdfBytes(
       data: fullData,
-      animalImage: animalImg.isNotEmpty ? animalImg : null,
-      radarImage: radarImg.isNotEmpty ? radarImg : null,
-      barImage: barImg.isNotEmpty ? barImg : null,
+      epmProm: epmProm,
     );
   }
 

@@ -23,9 +23,8 @@ class PdfService {
 
   static Future<Uint8List> generateAnimalPdfBytes({
     required Map<String, dynamic> data,
+    Map<String, double>? epmProm,
     Uint8List? animalImage,
-    Uint8List? radarImage,
-    Uint8List? barImage,
   }) async {
     // 1) Obtener foto del animal (desde animalImage o base64 en data)
     Uint8List? finalAnimalImage = animalImage;
@@ -39,7 +38,7 @@ class PdfService {
     }
 
     // 2) Mapear datos al modelo zootécnico
-    final animalEval = _mapDataToAnimalEvaluationData(data);
+    final animalEval = _mapDataToAnimalEvaluationData(data, epmProm);
 
     // 3) Consultar productor y evaluador si existen en la sesión
     final sid = (data['sessionId'] as String?) ?? (data['session_id'] as String?) ?? '';
@@ -1282,7 +1281,7 @@ class PdfService {
   }
 
   // Helper para mapear Map<String, dynamic> -> AnimalEvaluationData
-  static AnimalEvaluationData _mapDataToAnimalEvaluationData(Map<String, dynamic> data) {
+  static AnimalEvaluationData _mapDataToAnimalEvaluationData(Map<String, dynamic> data, [Map<String, double>? epmProm]) {
     final numero = data['numero']?.toString() ?? '4921';
     final registro = data['registro']?.toString() ?? 'RGN-8842';
     final raza = data['raza']?.toString() ?? 'Nelore Padrón';
@@ -1301,78 +1300,38 @@ class PdfService {
     double getEpmScore(String key, double defaultVal) {
       return double.tryParse(epmRaw[key]?.toString() ?? '') ?? defaultVal;
     }
+    double getEpmAvg(String key, double defaultVal) {
+      if (epmProm != null && epmProm.containsKey(key)) {
+        return epmProm[key]!;
+      }
+      return defaultVal;
+    }
+
+    EpmurasScoreItem buildItem(String code, String name, String desc, double weight, double defaultScore, double defaultAvg, String levelLabel) {
+      final score = getEpmScore(code, defaultScore);
+      final avg = getEpmAvg(code, defaultAvg);
+      final diff = score - avg;
+      final diffStr = diff >= 0 ? '+${diff.toStringAsFixed(1)}' : diff.toStringAsFixed(1);
+      return EpmurasScoreItem(
+        code: code,
+        name: name,
+        description: desc,
+        weightPercentage: weight,
+        score: score,
+        herdAverage: avg,
+        difference: diffStr,
+        levelLabel: levelLabel,
+      );
+    }
 
     final epmItems = [
-      EpmurasScoreItem(
-        code: 'E',
-        name: 'Estructura Corporal',
-        description: 'Arqueo costal, longitud y amplitud esquelética',
-        weightPercentage: 17.5,
-        score: getEpmScore('E', 5.2),
-        herdAverage: 4.1,
-        difference: (getEpmScore('E', 5.2) - 4.1) >= 0 ? '+${(getEpmScore('E', 5.2) - 4.1).toStringAsFixed(1)}' : (getEpmScore('E', 5.2) - 4.1).toStringAsFixed(1),
-        levelLabel: 'Sobresaliente',
-      ),
-      EpmurasScoreItem(
-        code: 'P',
-        name: 'Precocidad',
-        description: 'Capacidad de deposición temprana y terminación',
-        weightPercentage: 20.0,
-        score: getEpmScore('P', 5.4),
-        herdAverage: 4.1,
-        difference: (getEpmScore('P', 5.4) - 4.1) >= 0 ? '+${(getEpmScore('P', 5.4) - 4.1).toStringAsFixed(1)}' : (getEpmScore('P', 5.4) - 4.1).toStringAsFixed(1),
-        levelLabel: 'Precoz',
-      ),
-      EpmurasScoreItem(
-        code: 'M',
-        name: 'Musculatura',
-        description: 'Volumen, convexidad de masa y definición muscular',
-        weightPercentage: 20.0,
-        score: getEpmScore('M', 5.0),
-        herdAverage: 4.2,
-        difference: (getEpmScore('M', 5.0) - 4.2) >= 0 ? '+${(getEpmScore('M', 5.0) - 4.2).toStringAsFixed(1)}' : (getEpmScore('M', 5.0) - 4.2).toStringAsFixed(1),
-        levelLabel: 'Adecuada',
-      ),
-      EpmurasScoreItem(
-        code: 'U',
-        name: 'Ombligo / Ubre',
-        description: 'Posición, ligamento suspensorio y ángulo de inserción',
-        weightPercentage: 12.5,
-        score: getEpmScore('U', 4.8),
-        herdAverage: 4.3,
-        difference: (getEpmScore('U', 4.8) - 4.3) >= 0 ? '+${(getEpmScore('U', 4.8) - 4.3).toStringAsFixed(1)}' : (getEpmScore('U', 4.8) - 4.3).toStringAsFixed(1),
-        levelLabel: 'Ángulo 45°',
-      ),
-      EpmurasScoreItem(
-        code: 'R',
-        name: 'Carácter Racial',
-        description: 'Conformación craneal, orejas, giba e indumentaria típica',
-        weightPercentage: 10.0,
-        score: getEpmScore('R', 5.6),
-        herdAverage: 4.2,
-        difference: (getEpmScore('R', 5.6) - 4.2) >= 0 ? '+${(getEpmScore('R', 5.6) - 4.2).toStringAsFixed(1)}' : (getEpmScore('R', 5.6) - 4.2).toStringAsFixed(1),
-        levelLabel: 'Estándar Puro',
-      ),
-      EpmurasScoreItem(
-        code: 'A',
-        name: 'Aplomos',
-        description: 'Angulación de corvejones, cuartillas y calidad de pezuñas',
-        weightPercentage: 10.0,
-        score: getEpmScore('A', 4.6),
-        herdAverage: 4.6,
-        difference: (getEpmScore('A', 4.6) - 4.6) >= 0 ? '+${(getEpmScore('A', 4.6) - 4.6).toStringAsFixed(1)}' : (getEpmScore('A', 4.6) - 4.6).toStringAsFixed(1),
-        levelLabel: 'Funcionales',
-      ),
-      EpmurasScoreItem(
-        code: 'S',
-        name: 'Carácter Sexual',
-        description: 'Expresión de feminidad/masculinidad y proporciones',
-        weightPercentage: 10.0,
-        score: getEpmScore('S', 5.2),
-        herdAverage: 4.3,
-        difference: (getEpmScore('S', 5.2) - 4.3) >= 0 ? '+${(getEpmScore('S', 5.2) - 4.3).toStringAsFixed(1)}' : (getEpmScore('S', 5.2) - 4.3).toStringAsFixed(1),
-        levelLabel: 'Alta Expresión',
-      ),
+      buildItem('E', 'Estructura Corporal', 'Arqueo costal, longitud y amplitud esquelética', 17.5, 5.2, 4.1, 'Sobresaliente'),
+      buildItem('P', 'Precocidad', 'Capacidad de deposición temprana y terminación', 20.0, 5.4, 4.1, 'Precoz'),
+      buildItem('M', 'Musculatura', 'Volumen, convexidad de masa y definición muscular', 20.0, 5.0, 4.2, 'Adecuada'),
+      buildItem('U', 'Ombligo / Ubre', 'Posición, ligamento suspensorio y ángulo de inserción', 12.5, 4.8, 4.3, 'Ángulo 45°'),
+      buildItem('R', 'Carácter Racial', 'Conformación craneal, orejas, giba e indumentaria típica', 10.0, 5.6, 4.2, 'Estándar Puro'),
+      buildItem('A', 'Aplomos', 'Angulación de corvejones, cuartillas y calidad de pezuñas', 10.0, 4.6, 4.6, 'Funcionales'),
+      buildItem('S', 'Carácter Sexual', 'Expresión de feminidad/masculinidad y proporciones', 10.0, 5.2, 4.3, 'Alta Expresión'),
     ];
 
     double globalSum = 0;
