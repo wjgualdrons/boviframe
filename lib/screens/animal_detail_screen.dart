@@ -222,28 +222,73 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => Scaffold(
+          backgroundColor: const Color(0xFFE8F0EA),
           appBar: AppBar(
-            title: const Text('Vista previa PDF', style: TextStyle(color: Colors.white)),
             backgroundColor: const Color(0xFF1B4332),
+            elevation: 0,
             leading: const BackButton(color: Colors.white),
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Certificado Zootécnico Oficial',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+                Text(
+                  'Ejemplar ${_data['numero']} (${_data['raza']}) • Formato A4',
+                  style: const TextStyle(fontSize: 11, color: Color(0xFFB7E4C7)),
+                ),
+              ],
+            ),
             actions: [
               IconButton(
-                icon: const Icon(Icons.picture_as_pdf, color: Colors.white),
                 tooltip: 'Compartir PDF',
+                icon: const Icon(Icons.share_outlined, color: Colors.white),
                 onPressed: () async {
                   final bytes = await _generatePdfBytes();
                   await Printing.sharePdf(
                     bytes: bytes,
-                    filename: 'evaluacion_${_data['numero']}.pdf',
+                    filename: 'Certificado_EPMURAS_${_data['numero']}.pdf',
+                  );
+                },
+              ),
+              const SizedBox(width: 8),
+            ],
+          ),
+          body: PdfPreview(
+            build: (format) => _generatePdfBytes(),
+            allowPrinting: true,
+            allowSharing: true,
+            canChangePageFormat: false,
+            canChangeOrientation: false,
+            initialPageFormat: PdfPageFormat.a4,
+            pdfFileName: 'Certificado_EPMURAS_${_data['numero']}.pdf',
+            previewPageMargin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            loadingWidget: const Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(color: Color(0xFF1B4332)),
+                  SizedBox(height: 12),
+                  Text(
+                    'Generando Certificado Zootécnico A4...',
+                    style: TextStyle(color: Color(0xFF1B4332), fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              PdfPreviewAction(
+                icon: const Icon(Icons.download_rounded, color: Colors.white),
+                onPressed: (context, build, pageFormat) async {
+                  final bytes = await build(pageFormat);
+                  await Printing.sharePdf(
+                    bytes: bytes,
+                    filename: 'Informe_EPMURAS_${_data['numero']}.pdf',
                   );
                 },
               ),
             ],
-          ),
-          body: PdfPreview(
-            allowPrinting: true,
-            allowSharing: true,
-            build: (format) => _generatePdfBytes(),
           ),
         ),
       ),
