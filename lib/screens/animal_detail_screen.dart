@@ -194,6 +194,7 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
     return PdfService.generateAnimalPdfBytes(
       data: fullData,
       epmProm: epmProm,
+      animalImage: await _capture(_animalImageKey),
     );
   }
 

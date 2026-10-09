@@ -47,6 +47,8 @@ class PdfService {
     String evaluatorName = 'MV Gualdron Willians';
     String evaluatorCollegiate = 'MP 4.892';
 
+    String evaluatorEmail = 'mv.gualdron.willians@gmail.com';
+
     if (sid.isNotEmpty) {
       try {
         final prodSnap = await LocalFirestore.instance
@@ -68,6 +70,7 @@ class PdfService {
             if (usrSnap.exists) {
               final u = usrSnap.data();
               evaluatorName = u['nombre'] as String? ?? evaluatorName;
+              evaluatorEmail = u['email'] as String? ?? evaluatorEmail;
             }
           }
         }
@@ -78,6 +81,7 @@ class PdfService {
       animal: animalEval,
       animalImageBytes: finalAnimalImage,
       veterinarianName: evaluatorName,
+      veterinarianEmail: evaluatorEmail,
       collegiateNumber: evaluatorCollegiate,
       farmName: farmName,
       location: farmLoc,
@@ -89,6 +93,7 @@ class PdfService {
     required AnimalEvaluationData animal,
     Uint8List? animalImageBytes,
     String? veterinarianName,
+    String? veterinarianEmail,
     String? collegiateNumber,
     String? farmName,
     String? location,
@@ -153,6 +158,7 @@ class PdfService {
                 farm: farmName ?? 'Agropecuaria La Esperanza, Lote 2024-B',
                 loc: location ?? 'Ospino, Estado Portuguesa • Venezuela',
                 fontBold: fontBold,
+                contactEmail: veterinarianEmail,
               ),
               pw.Spacer(),
 
@@ -970,6 +976,24 @@ class PdfService {
         const angleStep = (2 * math.pi) / sides;
         const startAngle = -math.pi / 2;
 
+        // 1. Polígono del Animal Evaluado (Relleno semitransparente primero para no tapar lo demás)
+        canvas.setFillColor(PdfColor.fromInt(0x4052B788));
+        for (int i = 0; i < sides; i++) {
+          final a = startAngle + i * angleStep;
+          final item = animal.epmurasScores[i];
+          final r = radius * (item.score / 6.0);
+          final x = cx + r * math.cos(a);
+          final y = cy + r * math.sin(a);
+          if (i == 0) {
+            canvas.moveTo(x, y);
+          } else {
+            canvas.lineTo(x, y);
+          }
+        }
+        canvas.closePath();
+        canvas.fillPath();
+
+        // 2. Círculos concéntricos y ejes (dibujados por encima del relleno)
         canvas.setStrokeColor(PdfColor.fromInt(0xFFE5E7EB));
         canvas.setLineWidth(0.6);
         for (int step = 1; step <= 5; step++) {
@@ -999,6 +1023,7 @@ class PdfService {
           canvas.strokePath();
         }
 
+        // 3. Polígono Poblacional Hato (Ámbar) - Dibujado encima
         canvas.setStrokeColor(amberHato);
         canvas.setLineWidth(1.2);
         for (int i = 0; i < sides; i++) {
@@ -1016,7 +1041,7 @@ class PdfService {
         canvas.closePath();
         canvas.strokePath();
 
-        canvas.setFillColor(PdfColor.fromInt(0x4052B788));
+        // 4. Borde del Polígono del Animal y Vértices (Verde oscuro)
         canvas.setStrokeColor(primaryDark);
         canvas.setLineWidth(1.5);
         for (int i = 0; i < sides; i++) {
@@ -1032,7 +1057,7 @@ class PdfService {
           }
         }
         canvas.closePath();
-        canvas.fillAndStrokePath();
+        canvas.strokePath();
 
         canvas.setFillColor(primaryDark);
         for (int i = 0; i < sides; i++) {
@@ -1144,6 +1169,7 @@ class PdfService {
     required String farm,
     required String loc,
     required pw.Font fontBold,
+    String? contactEmail,
   }) {
     return pw.Row(
       crossAxisAlignment: pw.CrossAxisAlignment.center,
@@ -1184,7 +1210,7 @@ class PdfService {
                 ),
                 pw.SizedBox(height: 2),
                 pw.Text(
-                  'CONTACTO TÉCNICO: mv.gualdron.willians@gmail.com',
+                  'CONTACTO TÉCNICO: ${contactEmail ?? 'genetica@agroesperanza.lat'}',
                   style: const pw.TextStyle(fontSize: 6.5, color: primaryGreen),
                 ),
               ],
@@ -1218,19 +1244,6 @@ class PdfService {
                       pw.SizedBox(
                         height: 24,
                         width: 70,
-                        child: pw.CustomPaint(
-                          painter: (PdfGraphics canvas, PdfPoint size) {
-                            canvas.setStrokeColor(primaryDark);
-                            canvas.setLineWidth(1.2);
-                            canvas.moveTo(5, 12);
-                            canvas.curveTo(15, 22, 25, 2, 35, 16);
-                            canvas.curveTo(45, 24, 55, 6, 65, 14);
-                            canvas.strokePath();
-                            canvas.moveTo(10, 8);
-                            canvas.lineTo(60, 8);
-                            canvas.strokePath();
-                          },
-                        ),
                       ),
                       pw.Container(height: 0.8, color: cardBorder),
                       pw.SizedBox(height: 2),
