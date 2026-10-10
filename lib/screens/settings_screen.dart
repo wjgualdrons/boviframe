@@ -53,10 +53,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (currentUser == null) return;
 
     try {
-      final doc = await LocalFirestore.instance
-          .collection('usuarios')
-          .doc(currentUser.uid)
-          .get();
+      final doc =
+          await LocalFirestore.instance
+              .collection('usuarios')
+              .doc(currentUser.uid)
+              .get();
 
       if (!mounted) return;
 
@@ -97,7 +98,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (newName.isEmpty || newCole.isEmpty || newUbic.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Por favor, completa todos los campos antes de guardar.'),
+          content: Text(
+            'Por favor, completa todos los campos antes de guardar.',
+          ),
           backgroundColor: Colors.orange,
         ),
       );
@@ -111,12 +114,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           .collection('usuarios')
           .doc(currentUser.uid)
           .set({
-        'nombre': newName,
-        'colegio': newCole,
-        'ubicacion': newUbic,
-        'profesion': _selectedProfession,
-        if (_photoBase64 != null) 'foto_perfil': _photoBase64,
-      }, SetOptions(merge: true));
+            'nombre': newName,
+            'colegio': newCole,
+            'ubicacion': newUbic,
+            'profesion': _selectedProfession,
+            if (_photoBase64 != null) 'foto_perfil': _photoBase64,
+          }, SetOptions(merge: true));
 
       if (!mounted) return;
       context.read<SettingsProvider>().setUserData(
@@ -144,15 +147,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _signOut() async {
     await FirebaseAuth.instance.signOut();
     await GoogleSignIn().signOut();
-    if (mounted) {
-      Navigator.of(context).pushReplacementNamed('/');
-    }
+    if (!mounted) return;
+    Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
   }
 
   Future<void> _pickImage() async {
     try {
       final picker = ImagePicker();
-      final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+      final pickedFile = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 70,
+      );
       if (pickedFile != null) {
         final bytes = await pickedFile.readAsBytes();
         final base64Image = base64Encode(bytes);
@@ -168,15 +173,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
     }
   }
-    if (!mounted) return;
-    Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
-  }
 
   @override
   Widget build(BuildContext context) {
-    final userName = _nameController.text.isNotEmpty
-        ? _nameController.text
-        : (_user?.displayName ?? 'Usuario');
+    final userName =
+        _nameController.text.isNotEmpty
+            ? _nameController.text
+            : (_user?.displayName ?? 'Usuario');
 
     return Scaffold(
       backgroundColor: const Color(0xFFF3F7F4),
@@ -225,7 +228,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Expanded(
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 8,
+                ),
                 child: Column(
                   children: [
                     // USER PROFILE HEADER CARD
@@ -259,21 +265,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   decoration: BoxDecoration(
                                     color: Colors.white.withOpacity(0.2),
                                     shape: BoxShape.circle,
-                                    border: Border.all(color: Colors.white.withOpacity(0.4), width: 1.5),
-                                    image: _photoBase64 != null && _photoBase64!.isNotEmpty
-                                        ? DecorationImage(
-                                            image: MemoryImage(base64Decode(_photoBase64!)),
-                                            fit: BoxFit.cover,
-                                          )
-                                        : null,
+                                    border: Border.all(
+                                      color: Colors.white.withOpacity(0.4),
+                                      width: 1.5,
+                                    ),
+                                    image:
+                                        _photoBase64 != null &&
+                                                _photoBase64!.isNotEmpty
+                                            ? DecorationImage(
+                                              image: MemoryImage(
+                                                base64Decode(_photoBase64!),
+                                              ),
+                                              fit: BoxFit.cover,
+                                            )
+                                            : null,
                                   ),
-                                  child: _photoBase64 == null || _photoBase64!.isEmpty
-                                      ? const Icon(
-                                          Icons.person_rounded,
-                                          color: Colors.white,
-                                          size: 32,
-                                        )
-                                      : null,
+                                  child:
+                                      _photoBase64 == null ||
+                                              _photoBase64!.isEmpty
+                                          ? const Icon(
+                                            Icons.person_rounded,
+                                            color: Colors.white,
+                                            size: 32,
+                                          )
+                                          : null,
                                 ),
                                 Container(
                                   padding: const EdgeInsets.all(4),
@@ -281,7 +296,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     color: Colors.white,
                                     shape: BoxShape.circle,
                                   ),
-                                  child: const Icon(Icons.camera_alt, size: 14, color: Color(0xFF1B4931)),
+                                  child: const Icon(
+                                    Icons.camera_alt,
+                                    size: 14,
+                                    color: Color(0xFF1B4931),
+                                  ),
                                 ),
                               ],
                             ),
@@ -379,24 +398,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           const SizedBox(height: 6),
                           DropdownButtonFormField<String>(
                             value: _selectedProfession,
-                            items: _professions
-                                .map((p) => DropdownMenuItem(value: p, child: Text(p)))
-                                .toList(),
+                            items:
+                                _professions
+                                    .map(
+                                      (p) => DropdownMenuItem(
+                                        value: p,
+                                        child: Text(p),
+                                      ),
+                                    )
+                                    .toList(),
                             onChanged: (val) {
-                              if (val != null) setState(() => _selectedProfession = val);
+                              if (val != null)
+                                setState(() => _selectedProfession = val);
                             },
                             decoration: InputDecoration(
-                              prefixIcon: const Icon(Icons.work_outline_rounded, color: Color(0xFF235C3F), size: 20),
+                              prefixIcon: const Icon(
+                                Icons.work_outline_rounded,
+                                color: Color(0xFF235C3F),
+                                size: 20,
+                              ),
                               filled: true,
                               fillColor: const Color(0xFFF8FAFC),
-                              contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                              contentPadding: const EdgeInsets.symmetric(
+                                vertical: 14,
+                                horizontal: 16,
+                              ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(14),
-                                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFFE2E8F0),
+                                ),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(14),
-                                borderSide: const BorderSide(color: Color(0xFF235C3F), width: 1.8),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFF235C3F),
+                                  width: 1.8,
+                                ),
                               ),
                             ),
                           ),
@@ -414,23 +452,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   borderRadius: BorderRadius.circular(14),
                                 ),
                               ),
-                              child: _isSaving
-                                  ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              child:
+                                  _isSaving
+                                      ? const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                Colors.white,
+                                              ),
+                                        ),
+                                      )
+                                      : const Text(
+                                        "Guardar Cambios",
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14.5,
+                                        ),
                                       ),
-                                    )
-                                  : const Text(
-                                      "Guardar Cambios",
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14.5,
-                                      ),
-                                    ),
                             ),
                           ),
                         ],
@@ -474,7 +516,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             fontSize: 15,
                           ),
                         ),
-                        subtitle: const Text("Información del sistema, versión y módulos"),
+                        subtitle: const Text(
+                          "Información del sistema, versión y módulos",
+                        ),
                         trailing: const Icon(
                           Icons.chevron_right_rounded,
                           color: Color(0xFF94A3B8),
@@ -499,7 +543,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             color: const Color(0xFFFEE2E2),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.logout_rounded, color: Color(0xFFDC2626), size: 20),
+                          child: const Icon(
+                            Icons.logout_rounded,
+                            color: Color(0xFFDC2626),
+                            size: 20,
+                          ),
                         ),
                         title: const Text(
                           "Cerrar Sesión",
@@ -509,8 +557,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             fontSize: 15,
                           ),
                         ),
-                        subtitle: const Text("Salir de la cuenta en este dispositivo"),
-                        trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFFDC2626)),
+                        subtitle: const Text(
+                          "Salir de la cuenta en este dispositivo",
+                        ),
+                        trailing: const Icon(
+                          Icons.chevron_right_rounded,
+                          color: Color(0xFFDC2626),
+                        ),
                         onTap: _signOut,
                       ),
                     ),
@@ -555,14 +608,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
             hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
             filled: true,
             fillColor: const Color(0xFFF8FAFC),
-            contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+            contentPadding: const EdgeInsets.symmetric(
+              vertical: 14,
+              horizontal: 16,
+            ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
               borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: Color(0xFF235C3F), width: 1.8),
+              borderSide: const BorderSide(
+                color: Color(0xFF235C3F),
+                width: 1.8,
+              ),
             ),
           ),
         ),
