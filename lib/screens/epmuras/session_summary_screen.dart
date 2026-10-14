@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'report_screen_certificado.dart';
 import 'exportar_resumen_grupal_pdf.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -99,7 +99,7 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
             },
           ),
         ],
-        title: const Text('Resumen de la SesiÃ³n'),
+        title: const Text('Resumen de la Sesión'),
         backgroundColor: Colors.blue[800],
       ),
       floatingActionButton: isClosed
@@ -146,15 +146,15 @@ class _SessionSummaryScreenState extends State<SessionSummaryScreen> {
                               ),
                               SizedBox(height: 16),
                               Text(
-                                'Mejor Animal: ${mejor['nombre']} (Ãndice: ${mejor['indice']})',
+                                'Mejor Animal: ${mejor['nombre']} (Índice: ${mejor['indice']})',
                               ),
                               Text(
-                                'Peor Animal: ${peor['nombre']} (Ãndice: ${peor['indice']})',
+                                'Peor Animal: ${peor['nombre']} (Índice: ${peor['indice']})',
                               ),
                               Divider(height: 24),
                               SizedBox(height: 24),
                               Text(
-                                'GrÃ¡fica de Promedios:',
+                                'Gráfica de Promedios:',
                                 style: TextStyle(fontWeight: FontWeight.bold),
                               ),
                               SizedBox(

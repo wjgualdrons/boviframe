@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:boviframe/services/local_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -15,7 +15,7 @@ class EditSessionSelectorScreen extends StatelessWidget {
 
         backgroundColor: Colors.blue[800],
         title: const Text(
-          'Seleccionar SesiÃ³n',
+          'Seleccionar Sesión',
           style: TextStyle(color: Colors.white),
         ),
         centerTitle: true,
@@ -61,10 +61,10 @@ class EditSessionSelectorScreen extends StatelessWidget {
                   final doc = snapshot.data!.docs[index];
                   final data = doc.data() as Map<String, dynamic>;
 
-                  // Extraemos el nÃºmero de sesiÃ³n (campo 'numero_sesion')
-                  final numeroSesion = data['numero_sesion'] as String? ?? 'â€”';
+                  // Extraemos el número de sesión (campo 'numero_sesion')
+                  final numeroSesion = data['numero_sesion'] as String? ?? '-';
 
-                  // Extraemos el estado de la sesiÃ³n (por ejemplo: "activa", "cerrada", etc.)
+                  // Extraemos el estado de la sesión (por ejemplo: "activa", "cerrada", etc.)
                   final estado = data['estado'] as String? ?? 'Sin estado';
 
                   // Convertimos la marca de tiempo a un texto legible.
@@ -97,7 +97,7 @@ class EditSessionSelectorScreen extends StatelessWidget {
                         color: Colors.blue,
                       ),
                       title: Text(
-                        'SesiÃ³n: $numeroSesion',
+                        'Sesión: $numeroSesion',
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
@@ -116,7 +116,7 @@ class EditSessionSelectorScreen extends StatelessWidget {
                               ConnectionState.waiting) {
                             return const Padding(
                               padding: EdgeInsets.only(top: 8),
-                              child: Text('Cargando datos del productorâ€¦'),
+                              child: Text('Cargando datos del productor...'),
                             );
                           }
                           if (!prodSnapshot.hasData ||
@@ -149,7 +149,7 @@ class EditSessionSelectorScreen extends StatelessWidget {
                               'Unidad no especificada';
                           final ubicacion =
                               prodData['ubicacion'] as String? ??
-                              'UbicaciÃ³n no especificada';
+                              'Ubicación no especificada';
                           final estadoProd =
                               prodData['estado'] as String? ??
                               'Estado no especificado';
@@ -164,12 +164,12 @@ class EditSessionSelectorScreen extends StatelessWidget {
                               children: [
                                 // Datos del productor:
                                 Text('Unidad: $unidadProduccion'),
-                                Text('UbicaciÃ³n: $ubicacion'),
+                                Text('Ubicación: $ubicacion'),
                                 Text('Estado (Prod.): $estadoProd'),
                                 Text('Municipio: $municipio'),
                                 const SizedBox(height: 4),
-                                // Estado y fecha de la sesiÃ³n:
-                                Text('Estado (SesiÃ³n): $estado'),
+                                // Estado y fecha de la sesión:
+                                Text('Estado (Sesión): $estado'),
                                 Text('Creado: $fechaTexto'),
                               ],
                             ),

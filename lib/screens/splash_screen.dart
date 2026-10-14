@@ -179,7 +179,7 @@ class _SplashScreenState extends State<SplashScreen>
                           child: Column(
                             children: const [
                               Text(
-                                "BOVIFrame Zootecnia",
+                                "BOVIFrame",
                                 style: TextStyle(
                                   fontSize: 24,
                                   fontWeight: FontWeight.bold,
@@ -255,7 +255,7 @@ class _SplashScreenState extends State<SplashScreen>
                       child: const Padding(
                         padding: EdgeInsets.only(bottom: 16),
                         child: Text(
-                          "© 2026 BOVIFrame Zootecnia • Todos los derechos reservados",
+                          "© 2026 BOVIFrame  • Todos los derechos reservados",
                           style: TextStyle(
                             fontSize: 11,
                             color: Color(0xFF94A3B8),

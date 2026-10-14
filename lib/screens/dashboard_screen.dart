@@ -79,7 +79,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return {
           ...animal,
           'indice': totalEpm,
-          'numero': animal['numero'] ?? '4921',
+          'numero': animal['numero'] ?? 'S/N',
           'nombre': animal['nombre'] ?? '',
           'raza': animal['raza'] ?? 'Brahman',
           'categoria': animal['categoria'] ?? 'Toro',
@@ -1038,7 +1038,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ...topAnimales.asMap().entries.map((entry) {
               final idx = entry.key;
               final a = entry.value;
-              final numArete = a['numero'] ?? '4921';
+              final numArete = a['numero'] ?? 'S/N';
               final raza = a['raza'] ?? 'Brahman';
               final cat = a['categoria'] ?? 'Toro';
               final scoreVal = (a['indice'] as double).toStringAsFixed(1);
@@ -1056,34 +1056,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               );
             })
-          else ...[
-            _buildEliteItem(
-              rank: '1',
-              tag: '#4921 Nelore Master',
-              type: 'Toro',
-              scores: 'E:6 • P:6 • M:6 • R:6 • S:6',
-              finalScore: '5.8',
-              highlight: true,
+          else
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF9FAFB),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+              ),
+              child: const Column(
+                children: [
+                  Icon(Icons.military_tech_outlined, size: 32, color: Color(0xFF94A3B8)),
+                  SizedBox(height: 6),
+                  Text(
+                    "No hay evaluaciones registradas para el ranking.",
+                    style: TextStyle(color: Color(0xFF6B7280), fontSize: 12),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 8),
-            _buildEliteItem(
-              rank: '2',
-              tag: '#3108 Brahman Supreme',
-              type: 'Vaca',
-              scores: 'E:6 • P:5 • M:6 • R:6 • S:5',
-              finalScore: '5.6',
-              highlight: false,
-            ),
-            const SizedBox(height: 8),
-            _buildEliteItem(
-              rank: '3',
-              tag: '#4950 Torete Brahman',
-              type: 'Torete',
-              scores: 'E:5 • P:6 • M:5 • R:6 • S:5',
-              finalScore: '5.5',
-              highlight: false,
-            ),
-          ],
         ],
       ),
     );
@@ -1196,6 +1189,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildAlertAnimalsSection() {
+    final alertList = bottomAnimales.where((a) => (a['indice'] as double? ?? 0) < 4.0).toList();
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -1247,15 +1242,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFEF2F2),
+                  color: alertList.isNotEmpty ? const Color(0xFFFEF2F2) : const Color(0xFFF0FDF4),
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: const Text(
-                  '3 alertas',
+                child: Text(
+                  alertList.isNotEmpty ? '${alertList.length} alertas' : '0 alertas',
                   style: TextStyle(
                     fontSize: 9.5,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFFDC2626),
+                    color: alertList.isNotEmpty ? const Color(0xFFDC2626) : const Color(0xFF16A34A),
                   ),
                 ),
               ),
@@ -1263,135 +1258,44 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const SizedBox(height: 12),
 
-          // Animal Crítico 1
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFEF2F2),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFFECACA)),
-            ),
-            child: Column(
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 26,
-                      height: 26,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFDC2626),
-                        shape: BoxShape.circle,
-                      ),
-                      alignment: Alignment.center,
-                      child: const Icon(Icons.priority_high, color: Colors.white, size: 16),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
-                          Text(
-                            '#2104 Toro Descarte Parcial',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF1B4332),
-                            ),
-                          ),
-                          SizedBox(height: 2),
-                          Text(
-                            'Alerta Crítica: Aplomo A=2 • Prepucio U=2',
-                            style: TextStyle(
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFFDC2626),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: const [
-                        Text(
-                          '2.8',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w900,
-                            color: Color(0xFFDC2626),
-                          ),
-                        ),
-                        Text(
-                          'pts EPM',
-                          style: TextStyle(
-                            fontSize: 8.5,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF6B7280),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+          if (alertList.isNotEmpty)
+            ...alertList.asMap().entries.map((entry) {
+              final idx = entry.key;
+              final a = entry.value;
+              final numArete = a['numero'] ?? 'S/N';
+              final raza = a['raza'] ?? 'Bovino';
+              final scoreVal = (a['indice'] as double).toStringAsFixed(1);
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: _buildAlertItem(
+                  index: '${idx + 1}',
+                  tag: '#$numArete $raza',
+                  cause: 'Bajo índice global ($scoreVal pts)',
+                  score: scoreVal,
                 ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    OutlinedButton(
-                      onPressed: () {
-                        Navigator.pushNamed(context, '/consulta_animal');
-                      },
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        side: const BorderSide(color: Color(0xFFD1D5DB)),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                      ),
-                      child: const Text('Ver Ficha', style: TextStyle(fontSize: 10, color: Color(0xFF374151))),
-                    ),
-                    const SizedBox(width: 6),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.pushNamed(context, '/animal_evaluation');
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFEE2E2),
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                      ),
-                      child: const Text(
-                        'Reevaluar Manga',
-                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFB91C1C)),
-                      ),
-                    ),
-                  ],
-                )
-              ],
+              );
+            })
+          else
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF9FAFB),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+              ),
+              child: const Column(
+                children: [
+                  Icon(Icons.check_circle_outline, size: 32, color: Color(0xFF10B981)),
+                  SizedBox(height: 6),
+                  Text(
+                    "No hay ejemplares en observación o con defectos críticos.",
+                    style: TextStyle(color: Color(0xFF6B7280), fontSize: 12),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-
-          // Animal Alerta 2
-          _buildAlertItem(
-            index: '2',
-            tag: '#1982 Novillo Tardío',
-            cause: 'Baja precocidad (P=2.5) y musculatura deficiente',
-            score: '3.1',
-          ),
-          const SizedBox(height: 8),
-
-          // Animal Alerta 3
-          _buildAlertItem(
-            index: '3',
-            tag: '#2055 Brahman Desbalanceado',
-            cause: 'Prepucio péndulo excesivo (U=2.0)',
-            score: '3.2',
-          ),
         ],
       ),
     );

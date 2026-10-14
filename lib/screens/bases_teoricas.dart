@@ -361,33 +361,42 @@ class _EpmurasInfographicState extends State<EpmurasInfographic> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Row(
-                  children: [
-                    Icon(Icons.architecture_rounded, color: Color(0xFF74C69D), size: 20),
-                    SizedBox(width: 8),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'MAPEO BIOMÉTRICO EN MANGA',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.6,
-                            color: Colors.white,
-                          ),
+                const Expanded(
+                  child: Row(
+                    children: [
+                      Icon(Icons.architecture_rounded, color: Color(0xFF74C69D), size: 20),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'MAPEO BIOMÉTRICO EN MANGA',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.6,
+                                color: Colors.white,
+                              ),
+                            ),
+                            Text(
+                              'Vectores de evaluación en toro Nelore / Cebuino',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                color: Color(0xFFB7E4C7),
+                              ),
+                            ),
+                          ],
                         ),
-                        Text(
-                          'Vectores de evaluación en toro Nelore / Cebuino',
-                          style: TextStyle(
-                            fontSize: 10.5,
-                            color: Color(0xFFB7E4C7),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
@@ -412,7 +421,7 @@ class _EpmurasInfographicState extends State<EpmurasInfographic> {
               ClipRRect(
                 child: Image.asset(
                   'assets/img/Fondo_inicio.jpg',
-                  height: 220,
+                  height: 250,
                   width: double.infinity,
                   fit: BoxFit.cover,
                   errorBuilder: (ctx, err, st) => Container(
@@ -499,8 +508,10 @@ class _EpmurasInfographicState extends State<EpmurasInfographic> {
                 bottomRight: Radius.circular(20),
               ),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              runSpacing: 6,
+              spacing: 8,
               children: [
                 _buildFieldCondition(Icons.timer_outlined, '45–90 seg/animal'),
                 _buildFieldCondition(Icons.sync_alt, 'Distancia: 3 a 5 m'),
@@ -749,14 +760,17 @@ class _EpmurasInfographicState extends State<EpmurasInfographic> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              name,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFF1B4332),
+                            Expanded(
+                              child: Text(
+                                name,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF1B4332),
+                                ),
                               ),
                             ),
+                            const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                               decoration: BoxDecoration(
@@ -1055,32 +1069,41 @@ class _EpmurasInfographicState extends State<EpmurasInfographic> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Row(
-                children: [
-                  Icon(Icons.table_chart_outlined, color: Color(0xFF1B4332), size: 20),
-                  SizedBox(width: 8),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Matriz Zootécnica y Descalificación',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF1B4332),
-                        ),
+              const Expanded(
+                child: Row(
+                  children: [
+                    Icon(Icons.table_chart_outlined, color: Color(0xFF1B4332), size: 20),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Matriz Zootécnica y Descalificación',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF1B4332),
+                            ),
+                          ),
+                          Text(
+                            'Criterio estandarizado de calificación lineal',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              color: Color(0xFF6B7280),
+                            ),
+                          ),
+                        ],
                       ),
-                      Text(
-                        'Criterio estandarizado de calificación lineal',
-                        style: TextStyle(
-                          fontSize: 10.5,
-                          color: Color(0xFF6B7280),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
@@ -1275,12 +1298,14 @@ class _EpmurasInfographicState extends State<EpmurasInfographic> {
                   children: [
                     Icon(Icons.warning_amber_rounded, color: Color(0xFFDC2626), size: 18),
                     SizedBox(width: 6),
-                    Text(
-                      'Motivos de Calificación Cero (0) / Descarte Inmediato:',
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF991B1B),
+                    Expanded(
+                      child: Text(
+                        'Motivos de Calificación Cero (0) / Descarte Inmediato:',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF991B1B),
+                        ),
                       ),
                     ),
                   ],

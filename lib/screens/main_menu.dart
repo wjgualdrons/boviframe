@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/local_firestore.dart';
+import '../widgets/custom_bottom_nav_bar.dart';
 import 'providers/settings_provider.dart';
 
 class MainMenu extends StatefulWidget {
@@ -17,15 +18,12 @@ class _MainMenuState extends State<MainMenu> {
   int _bannerIndex = 0;
   late PageController _bannerPageController;
   List<Map<String, dynamic>> _topEvaluations = [];
-  String _selectedFarm = "Hda. San Jerónimo";
-  String _selectedLot = "Lote 04 • 68 Cabezas";
+  String _selectedFarm = "Sin Finca Asignada";
+  String _selectedLot = "Sin Lote";
   final TextEditingController _searchController = TextEditingController();
 
-  final List<Map<String, String>> _farms = [
-    {'name': 'Hda. San Jerónimo', 'lot': 'Lote 04 • 68 Cabezas'},
-    {'name': 'Finca El Roble', 'lot': 'Lote 01 • 45 Cabezas'},
-    {'name': 'Rancho Los Bueyes', 'lot': 'Lote 02 • 120 Cabezas'},
-  ];
+  final List<Map<String, String>> _farms = [];
+
 
   @override
   void initState() {
@@ -44,6 +42,7 @@ class _MainMenuState extends State<MainMenu> {
   Future<void> _loadTopEvaluations() async {
     try {
       List<Map<String, dynamic>> evals = [];
+      Map<String, String> farmsFound = {};
       final userId = FirebaseAuth.instance.currentUser?.uid;
       final sesionesSnap = await LocalFirestore.instance.collection('sesiones').get();
 
@@ -52,8 +51,13 @@ class _MainMenuState extends State<MainMenu> {
         final farmName = sData['unidad_produccion'] ??
             sData['nombre_finca'] ??
             sData['hacienda'] ??
-            (sData['datos_productor'] is Map ? sData['datos_productor']['unidad_produccion'] : null) ??
-            _selectedFarm;
+            (sData['datos_productor'] is Map ? sData['datos_productor']['unidad_produccion'] : null);
+        final lotName = sData['numero_sesion'] ?? sData['lote'] ?? 'Sesión activa';
+
+        if (farmName != null && farmName.toString().trim().isNotEmpty) {
+          farmsFound[farmName.toString()] = lotName.toString();
+        }
+
         final ownerName = sData['propietario'] ??
             sData['nombre_propietario'] ??
             (sData['datos_productor'] is Map ? sData['datos_productor']['nombre'] : null) ??
@@ -68,7 +72,7 @@ class _MainMenuState extends State<MainMenu> {
           final data = Map<String, dynamic>.from(evalDoc.data());
           data['evalId'] = evalDoc.id;
           data['sessionId'] = sesionDoc.id;
-          data['hacienda'] = farmName;
+          data['hacienda'] = farmName ?? 'Finca sin asignar';
           data['propietario'] = ownerName;
           evals.add(data);
         }
@@ -80,78 +84,26 @@ class _MainMenuState extends State<MainMenu> {
         return tB.toString().compareTo(tA.toString());
       });
 
-      final mocks = _getMockTopEvaluations();
-      if (evals.length < 5) {
-        for (var mock in mocks) {
-          if (evals.length >= 5) break;
-          if (!evals.any((e) => e['numero']?.toString() == mock['numero']?.toString())) {
-            evals.add(mock);
-          }
-        }
-      }
-
       if (mounted) {
         setState(() {
           _topEvaluations = evals.take(5).toList();
+          if (farmsFound.isNotEmpty) {
+            _farms.clear();
+            _farms.addAll(farmsFound.entries.map((e) => {'name': e.key, 'lot': e.value}));
+            if (_selectedFarm == "Sin Finca Asignada" && _farms.isNotEmpty) {
+              _selectedFarm = _farms.first['name']!;
+              _selectedLot = _farms.first['lot']!;
+            }
+          }
         });
       }
     } catch (_) {
       if (mounted) {
         setState(() {
-          _topEvaluations = _getMockTopEvaluations();
+          _topEvaluations = [];
         });
       }
     }
-  }
-
-  List<Map<String, dynamic>> _getMockTopEvaluations() {
-    return [
-      {
-        'numero': '4921',
-        'hacienda': 'Hda. San Jerónimo',
-        'propietario': 'Dr. Willians Gualdron',
-        'raza': 'Angus Pardo',
-        'sexo': 'Macho',
-        'image': 'assets/img/vaca.jpg',
-        'badge': 'Elite 94 pts',
-      },
-      {
-        'numero': '3108',
-        'hacienda': 'Finca El Roble',
-        'propietario': 'Agropecuaria El Roble',
-        'raza': 'Brahman Blanco',
-        'sexo': 'Hembra',
-        'image': 'assets/img/vaca3.jpg',
-        'badge': 'Destacada',
-      },
-      {
-        'numero': '1052',
-        'hacienda': 'Rancho Los Bueyes',
-        'propietario': 'Hda. San Jerónimo',
-        'raza': 'Gyr Lechero',
-        'sexo': 'Hembra',
-        'image': 'assets/img/vaca2.jpg',
-        'badge': 'Muy Buena',
-      },
-      {
-        'numero': '8820',
-        'hacienda': 'Hda. San Jerónimo',
-        'propietario': 'Fundo La Esperanza',
-        'raza': 'Guzerá Reproductor',
-        'sexo': 'Macho',
-        'image': 'assets/img/vaca.jpg',
-        'badge': 'Excelente',
-      },
-      {
-        'numero': '5514',
-        'hacienda': 'Finca Santa Cruz',
-        'propietario': 'Ganadería Santa Cruz',
-        'raza': 'Nelore Comercial',
-        'sexo': 'Hembra',
-        'image': 'assets/img/vaca3.jpg',
-        'badge': 'Sobresaliente',
-      },
-    ];
   }
 
   void _showFarmSelector() {
@@ -185,37 +137,48 @@ class _MainMenuState extends State<MainMenu> {
                 ],
               ),
               const SizedBox(height: 10),
-              ..._farms.map((f) => ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE2EFE7),
-                    shape: BoxShape.circle,
+              if (_farms.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20),
+                  child: Center(
+                    child: Text(
+                      "No hay fincas registradas.",
+                      style: TextStyle(color: Color(0xFF64748B), fontSize: 14),
+                    ),
                   ),
-                  child: const Icon(
-                    Icons.location_on_outlined,
-                    color: Color(0xFF235C3F),
+                )
+              else
+                ..._farms.map((f) => ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFE2EFE7),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.location_on_outlined,
+                      color: Color(0xFF235C3F),
+                    ),
                   ),
-                ),
-                title: Text(
-                  f['name']!,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF192A20),
+                  title: Text(
+                    f['name']!,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF192A20),
+                    ),
                   ),
-                ),
-                subtitle: Text(f['lot']!),
-                trailing: _selectedFarm == f['name']
-                    ? const Icon(Icons.check_circle, color: Color(0xFF235C3F))
-                    : null,
-                onTap: () {
-                  setState(() {
-                    _selectedFarm = f['name']!;
-                    _selectedLot = f['lot']!;
-                  });
-                  Navigator.pop(context);
-                },
-              )),
+                  subtitle: Text(f['lot']!),
+                  trailing: _selectedFarm == f['name']
+                      ? const Icon(Icons.check_circle, color: Color(0xFF235C3F))
+                      : null,
+                  onTap: () {
+                    setState(() {
+                      _selectedFarm = f['name']!;
+                      _selectedLot = f['lot']!;
+                    });
+                    Navigator.pop(context);
+                  },
+                )),
               const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
@@ -624,153 +587,157 @@ class _MainMenuState extends State<MainMenu> {
 
           // Content
           Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // MANGA ACTIVA BADGE
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.18),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 7,
-                        height: 7,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF4ADE80),
-                          shape: BoxShape.circle,
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+            child: SingleChildScrollView(
+              physics: const ClampingScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // MANGA ACTIVA BADGE
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.18),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 7,
+                          height: 7,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF4ADE80),
+                            shape: BoxShape.circle,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 6),
-                      const Text(
-                        "MANGA ACTIVA",
+                        const SizedBox(width: 6),
+                        const Text(
+                          "MANGA ACTIVA",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Title
+                  const Text(
+                    "¿Lote listo para calificar?",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18.5,
+                      fontWeight: FontWeight.bold,
+                      height: 1.15,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    "Inicia evaluación EPMURAS en manga",
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.9),
+                      fontSize: 12.5,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Checklist Items
+                  Row(
+                    children: const [
+                      Icon(Icons.check, color: Color(0xFF4ADE80), size: 15),
+                      SizedBox(width: 6),
+                      Text(
+                        "Calificación lineal rápida (1 al 6)",
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.8,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w400,
                         ),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 12),
-
-                // Title
-                const Text(
-                  "¿Lote listo para calificar?",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    height: 1.2,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  "Inicia evaluación EPMURAS en manga",
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
-                    fontSize: 13,
-                  ),
-                ),
-                const SizedBox(height: 14),
-
-                // Checklist Items
-                Row(
-                  children: const [
-                    Icon(Icons.check, color: Color(0xFF4ADE80), size: 16),
-                    SizedBox(width: 6),
-                    Text(
-                      "Calificación lineal rápida (1 al 6)",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: const [
-                    Icon(Icons.check, color: Color(0xFF4ADE80), size: 16),
-                    SizedBox(width: 6),
-                    Text(
-                      "Captura offline & RFID simultáneo",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 18),
-
-                // Action Buttons
-                Row(
-                  children: [
-                    ElevatedButton.icon(
-                      onPressed: () => Navigator.pushNamed(context, '/epmuras'),
-                      icon: const Icon(
-                        Icons.add_rounded,
-                        color: Color(0xFF235C3F),
-                        size: 18,
-                      ),
-                      label: const Text(
-                        "Iniciar Manga",
-                        style: TextStyle(
-                          color: Color(0xFF235C3F),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13.5,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 11,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    OutlinedButton(
-                      onPressed: () => Navigator.pushNamed(context, '/epmuras'),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 11,
-                        ),
-                        side: BorderSide(
-                          color: Colors.white.withOpacity(0.6),
-                          width: 1,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                      ),
-                      child: const Text(
-                        "Programar Lote",
+                  const SizedBox(height: 4),
+                  Row(
+                    children: const [
+                      Icon(Icons.check, color: Color(0xFF4ADE80), size: 15),
+                      SizedBox(width: 6),
+                      Text(
+                        "Captura offline & RFID simultáneo",
                         style: TextStyle(
                           color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w400,
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Action Buttons
+                  Row(
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: () => Navigator.pushNamed(context, '/epmuras'),
+                        icon: const Icon(
+                          Icons.add_rounded,
+                          color: Color(0xFF235C3F),
+                          size: 16,
+                        ),
+                        label: const Text(
+                          "Iniciar Manga",
+                          style: TextStyle(
+                            color: Color(0xFF235C3F),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 8,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      OutlinedButton(
+                        onPressed: () => Navigator.pushNamed(context, '/epmuras'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 8,
+                          ),
+                          side: BorderSide(
+                            color: Colors.white.withOpacity(0.6),
+                            width: 1,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
+                        child: const Text(
+                          "Programar Lote",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -782,7 +749,7 @@ class _MainMenuState extends State<MainMenu> {
   Widget _buildTopBannerCarousel() {
     final totalPages = 1 + _topEvaluations.length;
     return SizedBox(
-      height: 220,
+      height: 250,
       child: PageView.builder(
         controller: _bannerPageController,
         onPageChanged: (index) {
@@ -806,7 +773,7 @@ class _MainMenuState extends State<MainMenu> {
   // Evaluation Card for Top Scroll Banner
   Widget _buildEvaluationBannerCard(Map<String, dynamic> data, int cardIndex) {
     final animalNum = data['numero'] ?? data['arete'] ?? 'S/N';
-    final hacienda = data['hacienda'] ?? data['unidad_produccion'] ?? 'Hda. San Jerónimo';
+    final hacienda = data['hacienda'] ?? data['unidad_produccion'] ?? 'Finca sin asignar';
     final propietario = data['propietario'] ?? data['nombre_propietario'] ?? '';
     final raza = data['raza'] ?? data['sexo'] ?? 'Ejemplar Evaluado';
     final imageBase64 = data['image_base64'];
@@ -1082,6 +1049,7 @@ class _MainMenuState extends State<MainMenu> {
   // Carousel Dots Widget
   Widget _buildCarouselDots() {
     final totalPages = 1 + _topEvaluations.length;
+    if (totalPages <= 1) return const SizedBox.shrink();
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(totalPages, (index) {
@@ -1197,9 +1165,9 @@ class _MainMenuState extends State<MainMenu> {
       itemCount: modulos.length,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 4,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 10,
-        childAspectRatio: 0.82,
+        mainAxisSpacing: 10,
+        crossAxisSpacing: 8,
+        childAspectRatio: 0.72,
       ),
       itemBuilder: (context, index) {
         final item = modulos[index];
@@ -1233,31 +1201,31 @@ class _MainMenuState extends State<MainMenu> {
             ),
           ],
         ),
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 46,
-              height: 46,
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
                 color: const Color(0xFFE8F3EC),
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 icon,
                 color: const Color(0xFF235C3F),
-                size: 22,
+                size: 20,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             Text(
               title,
               textAlign: TextAlign.center,
-              maxLines: 2,
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                fontSize: 11.5,
+                fontSize: 10.5,
                 fontWeight: FontWeight.w600,
                 color: Color(0xFF192A20),
                 height: 1.1,
@@ -1271,48 +1239,52 @@ class _MainMenuState extends State<MainMenu> {
 
   // Evaluaciones Carousel Widget
   Widget _buildEvaluacionesCarousel() {
-    final List<Map<String, dynamic>> evalCards = [
-      {
-        'title': 'Toro Angus #4921',
-        'subtitle': 'Reproductor Pardo • 26 meses',
-        'badgeText': 'Elite 94 pts',
-        'badgeColor': const Color(0xFF0D9488),
-        'rfid': '*921',
-        'status': 'Excelente',
-        'image': 'assets/img/vaca.jpg',
-        'scores': {'E': 5, 'P': 6, 'M': 5, 'U': 4, 'R': 6, 'A': 5, 'S': 6},
-      },
-      {
-        'title': 'Vaca Brahman #3108',
-        'subtitle': 'Blanco Guzerá • 32 meses',
-        'badgeText': 'Destacada',
-        'badgeColor': const Color(0xFF1E293B),
-        'rfid': '*534',
-        'status': 'Excelente',
-        'image': 'assets/img/vaca3.jpg',
-        'scores': {'E': 5, 'P': 5, 'M': 4, 'U': 5, 'R': 5, 'A': 4, 'S': 5},
-      },
-      {
-        'title': 'Novilla Gyr #1052',
-        'subtitle': 'Lechero • 18 meses',
-        'badgeText': 'Muy Buena',
-        'badgeColor': const Color(0xFF0284C7),
-        'rfid': '*108',
-        'status': 'Destacada',
-        'image': 'assets/img/vaca2.jpg',
-        'scores': {'E': 4, 'P': 5, 'M': 5, 'U': 4, 'R': 4, 'A': 5, 'S': 4},
-      },
-    ];
+    if (_topEvaluations.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: Column(
+          children: [
+            Image.asset(
+              'assets/icons/logo1.png',
+              width: 56,
+              height: 56,
+              fit: BoxFit.contain,
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              "No hay evaluaciones registradas.",
+              style: TextStyle(
+                color: Color(0xFF192A20),
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              "Inicia una sesión en el módulo EPMURAS para calificar animales.",
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Color(0xFF64748B), fontSize: 12),
+            ),
+          ],
+        ),
+      );
+    }
 
     return SizedBox(
       height: 385,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
-        itemCount: evalCards.length,
+        itemCount: _topEvaluations.length,
         separatorBuilder: (_, __) => const SizedBox(width: 14),
         itemBuilder: (context, index) {
-          final data = evalCards[index];
+          final data = _topEvaluations[index];
           return _buildEvaluationCard(data);
         },
       ),
@@ -1320,7 +1292,26 @@ class _MainMenuState extends State<MainMenu> {
   }
 
   Widget _buildEvaluationCard(Map<String, dynamic> data) {
-    final Map<String, int> scores = data['scores'];
+    final rawScores = data['epmuras'] ?? data['scores'];
+    final Map<String, int> scores = {};
+    if (rawScores is Map) {
+      rawScores.forEach((k, v) {
+        scores[k.toString()] = int.tryParse(v.toString()) ?? (double.tryParse(v.toString())?.toInt() ?? 5);
+      });
+    }
+    if (scores.isEmpty) {
+      scores.addAll({'E': 5, 'P': 5, 'M': 5, 'U': 5, 'R': 5, 'A': 5, 'S': 5});
+    }
+
+    final animalNum = data['numero'] ?? data['arete'] ?? 'S/N';
+    final title = "Ejemplar #$animalNum";
+    final raza = data['raza'] ?? data['sexo'] ?? 'Bovino';
+    final subtitle = "$raza • ${data['hacienda'] ?? ''}";
+    final badgeText = data['badge'] ?? data['estado_animal'] ?? 'Evaluado';
+    final badgeColor = data['badgeColor'] ?? const Color(0xFF0D9488);
+    final rfid = data['rfid'] ?? 'S/R';
+    final status = data['status'] ?? data['estado_animal'] ?? 'Registrado';
+    final image = data['image'];
 
     return Container(
       width: 275,
@@ -1344,17 +1335,28 @@ class _MainMenuState extends State<MainMenu> {
             // Top Image with Overlays
             Stack(
               children: [
-                Image.asset(
-                  data['image'],
-                  height: 135,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    height: 135,
-                    color: const Color(0xFFE2E8F0),
-                    child: const Icon(Icons.pets, color: Color(0xFF94A3B8), size: 40),
-                  ),
-                ),
+                image != null
+                    ? Image.asset(
+                        image.toString(),
+                        height: 135,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          height: 135,
+                          color: const Color(0xFFE2E8F0),
+                          child: Center(
+                            child: Image.asset('assets/icons/logo1.png', width: 44, height: 44),
+                          ),
+                        ),
+                      )
+                    : Container(
+                        height: 135,
+                        width: double.infinity,
+                        color: const Color(0xFFE2EFE7),
+                        child: Center(
+                          child: Image.asset('assets/icons/logo1.png', width: 44, height: 44),
+                        ),
+                      ),
                 // Badge Top Left
                 Positioned(
                   top: 10,
@@ -1362,11 +1364,11 @@ class _MainMenuState extends State<MainMenu> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: data['badgeColor'],
+                      color: badgeColor,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      data['badgeText'],
+                      badgeText.toString(),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 11,
@@ -1386,7 +1388,7 @@ class _MainMenuState extends State<MainMenu> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      "RFID: ${data['rfid']}",
+                      "RFID: $rfid",
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 10.5,
@@ -1404,13 +1406,12 @@ class _MainMenuState extends State<MainMenu> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Title & Status Badge
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Expanded(
                         child: Text(
-                          data['title'],
+                          title,
                           style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
@@ -1427,7 +1428,7 @@ class _MainMenuState extends State<MainMenu> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
-                          data['status'],
+                          status.toString(),
                           style: const TextStyle(
                             color: Color(0xFF15803D),
                             fontSize: 11,
@@ -1441,11 +1442,13 @@ class _MainMenuState extends State<MainMenu> {
 
                   // Subtitle
                   Text(
-                    data['subtitle'],
+                    subtitle,
                     style: const TextStyle(
                       fontSize: 12,
                       color: Color(0xFF64748B),
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 10),
 
@@ -1487,9 +1490,9 @@ class _MainMenuState extends State<MainMenu> {
                             Text(
                               "${e.value}",
                               style: const TextStyle(
-                                fontSize: 13,
+                                fontSize: 12,
                                 fontWeight: FontWeight.bold,
-                                color: Color(0xFF166534),
+                                color: Color(0xFF15803D),
                               ),
                             ),
                           ],
@@ -1538,98 +1541,7 @@ class _MainMenuState extends State<MainMenu> {
 
   // Bottom Navigation Bar Widget
   Widget _buildBottomNavBar() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -3),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildNavItem(
-            index: 0,
-            icon: Icons.home_rounded,
-            label: "Inicio",
-            route: '/main',
-          ),
-          _buildNavItem(
-            index: 1,
-            icon: Icons.assignment_outlined,
-            label: "Evaluaciones",
-            route: '/epmuras',
-          ),
-          _buildNavItem(
-            index: 2,
-            icon: Icons.support_agent_rounded,
-            label: "Soporte",
-            route: '/theory',
-          ),
-          _buildNavItem(
-            index: 3,
-            icon: Icons.person_outline_rounded,
-            label: "Cuenta",
-            route: '/settings',
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavItem({
-    required int index,
-    required IconData icon,
-    required String label,
-    required String route,
-  }) {
-    final isActive = _currentTab == index;
-    final activeColor = const Color(0xFF235C3F);
-    final inactiveColor = const Color(0xFF64748B);
-
-    return InkWell(
-      onTap: () {
-        setState(() {
-          _currentTab = index;
-        });
-        if (index != 0) {
-          Navigator.pushNamed(context, route);
-        }
-      },
-      borderRadius: BorderRadius.circular(20),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        decoration: BoxDecoration(
-          color: isActive ? const Color(0xFFE2EFE7) : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              color: isActive ? activeColor : inactiveColor,
-              size: 22,
-            ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-                color: isActive ? activeColor : inactiveColor,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    return const CustomBottomNavBar(currentIndex: 0);
   }
 }
 

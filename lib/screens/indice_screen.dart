@@ -38,15 +38,16 @@ class _IndiceScreenState extends State<IndiceScreen> {
     final userId = FirebaseAuth.instance.currentUser?.uid;
 
     try {
+      final sesionesSnapshot = userId != null
+          ? await firestore
+              .collection('sesiones')
+              .where('userId', isEqualTo: userId)
+              .get()
+          : await firestore.collection('sesiones').get();
+
       List<Map<String, dynamic>> temp = [];
 
-      if (userId != null) {
-        final sesionesSnapshot = await firestore
-            .collection('sesiones')
-            .where('userId', isEqualTo: userId)
-            .orderBy('timestamp', descending: true)
-            .get();
-
+      if (sesionesSnapshot.docs.isNotEmpty) {
         for (final sesionDoc in sesionesSnapshot.docs) {
           final sessionId = sesionDoc.id;
           final sessionData = sesionDoc.data();
@@ -71,43 +72,67 @@ class _IndiceScreenState extends State<IndiceScreen> {
               .get();
 
           final listaEvaluaciones = evalsSnapshot.docs.map((doc) => doc.data()).toList();
+          final numEvals = listaEvaluaciones.length;
+          final fincaNombre = productorData?['unidad_produccion'] as String?;
+          final municipio = productorData?['municipio'] as String?;
+          final estado = productorData?['estado'] as String?;
+          final ubicacion = (municipio != null || estado != null)
+              ? '${municipio ?? ""}${municipio != null && estado != null ? ", " : ""}${estado ?? ""} • Venezuela'
+              : 'Ubicación no registrada';
+
+          double eSum = 0, pSum = 0, mSum = 0, uSum = 0, rSum = 0, aSum = 0, sSum = 0;
+          if (numEvals > 0) {
+            for (final ev in listaEvaluaciones) {
+              final epm = ev['epmuras'] is Map ? ev['epmuras'] as Map : {};
+              eSum += double.tryParse('${epm['E'] ?? ev['E']}') ?? 0;
+              pSum += double.tryParse('${epm['P'] ?? ev['P']}') ?? 0;
+              mSum += double.tryParse('${epm['M'] ?? ev['M']}') ?? 0;
+              uSum += double.tryParse('${epm['U'] ?? ev['U']}') ?? 0;
+              rSum += double.tryParse('${epm['R'] ?? ev['R']}') ?? 0;
+              aSum += double.tryParse('${epm['A'] ?? ev['A']}') ?? 0;
+              sSum += double.tryParse('${epm['S'] ?? ev['S']}') ?? 0;
+            }
+          }
+          final eAvg = numEvals > 0 ? eSum / numEvals : 0.0;
+          final pAvg = numEvals > 0 ? pSum / numEvals : 0.0;
+          final mAvg = numEvals > 0 ? mSum / numEvals : 0.0;
+          final uAvg = numEvals > 0 ? uSum / numEvals : 0.0;
+          final rAvg = numEvals > 0 ? rSum / numEvals : 0.0;
+          final aAvg = numEvals > 0 ? aSum / numEvals : 0.0;
+          final sAvg = numEvals > 0 ? sSum / numEvals : 0.0;
+          final globalAvg = numEvals > 0 ? (eAvg + pAvg + mAvg + uAvg + rAvg + aAvg + sAvg) / 7.0 : 0.0;
 
           temp.add({
             'id': sessionId,
-            'fincaNombre': productorData?['unidad_produccion'] ?? 'Hacienda La Fundación',
-            'ubicacion': '${productorData?['municipio'] ?? 'Ospino'}, ${productorData?['estado'] ?? 'Portuguesa'} • Venezuela',
-            'fecha': _formatTimestamp(sessionData['timestamp']),
-            'evaluador': 'Jose (Evaluador)',
+            'fincaNombre': fincaNombre ?? 'Predio sin asignar',
+            'ubicacion': ubicacion,
+            'fecha': _formatTimestamp(sessionData['timestamp'] ?? sessionData['fecha_creacion']),
+            'evaluador': productorData?['evaluador'] ?? 'Evaluador asignado',
             'datosPredio': {
-              'unidad': productorData?['unidad_produccion'] ?? 'La Fundación',
-              'capacidad': productorData?['capacidad'] ?? '420 UA',
-              'municipio': productorData?['municipio'] ?? 'Ospino',
-              'estado': productorData?['estado'] ?? 'Portuguesa',
+              'unidad': fincaNombre ?? 'Sin unidad',
+              'capacidad': productorData?['capacidad'] ?? 'N/A',
+              'municipio': municipio ?? 'N/A',
+              'estado': estado ?? 'N/A',
               'activo': true,
             },
-            'loteNombre': sessionData['numero_sesion'] ?? 'Lote Toros 2025',
+            'loteNombre': sessionData['numero_sesion'] ?? 'Sesión #$sessionId',
             'sincronizado': true,
-            'evaluacionesCount': listaEvaluaciones.isNotEmpty ? listaEvaluaciones.length : 18,
-            'porcentajeLote': '100% lote',
+            'evaluacionesCount': numEvals,
+            'porcentajeLote': numEvals > 0 ? '$numEvals evaluados' : 'Sin animales',
             'promedios': {
-              'E': 5.2,
-              'P': 5.4,
-              'M': 4.8,
-              'U': 4.5,
-              'R': 5.1,
-              'A': 4.9,
-              'S': 5.3,
+              'E': double.parse(eAvg.toStringAsFixed(1)),
+              'P': double.parse(pAvg.toStringAsFixed(1)),
+              'M': double.parse(mAvg.toStringAsFixed(1)),
+              'U': double.parse(uAvg.toStringAsFixed(1)),
+              'R': double.parse(rAvg.toStringAsFixed(1)),
+              'A': double.parse(aAvg.toStringAsFixed(1)),
+              'S': double.parse(sAvg.toStringAsFixed(1)),
             },
-            'globalPromedio': 5.0,
-            'hasEvaluaciones': true,
+            'globalPromedio': double.parse(globalAvg.toStringAsFixed(1)),
+            'hasEvaluaciones': numEvals > 0,
             'evaluacionesData': listaEvaluaciones,
           });
         }
-      }
-
-      // Si no hay sesiones reales guardadas aún, cargamos los datos de demostración
-      if (temp.isEmpty) {
-        temp = _getMockData();
       }
 
       if (!mounted) return;
@@ -118,73 +143,20 @@ class _IndiceScreenState extends State<IndiceScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _fincasSesiones = _getMockData();
+        _fincasSesiones = [];
         _loading = false;
       });
     }
   }
 
-  List<Map<String, dynamic>> _getMockData() {
-    return [
-      {
-        'id': 'finca_1',
-        'fincaNombre': 'Hacienda La Fundación',
-        'ubicacion': 'Ospino, Portuguesa • Venezuela',
-        'fecha': '24/09/2026 - 13:11',
-        'evaluador': 'Jose (Evaluador)',
-        'icon': Icons.agriculture_rounded,
-        'datosPredio': {
-          'unidad': 'La Fundación',
-          'capacidad': '420 UA',
-          'municipio': 'Ospino',
-          'estado': 'Portuguesa',
-          'activo': true,
-        },
-        'loteNombre': 'Lote Toros 2025',
-        'sincronizado': true,
-        'evaluacionesCount': 18,
-        'porcentajeLote': '100% lote',
-        'promedios': {
-          'E': 5.2,
-          'P': 5.4,
-          'M': 4.8,
-          'U': 4.5,
-          'R': 5.1,
-          'A': 4.9,
-          'S': 5.3,
-        },
-        'globalPromedio': 5.0,
-        'hasEvaluaciones': true,
-      },
-      {
-        'id': 'finca_2',
-        'fincaNombre': 'Finca El Socorro',
-        'ubicacion': 'Barinas, Barinas • Venezuela',
-        'fecha': '18/09/2026 - 09:30',
-        'evaluador': 'Carlos M.',
-        'icon': Icons.home_work_rounded,
-        'statusBanner': '24 ejemplares calificados • 92% completado',
-        'hasEvaluaciones': true,
-        'evaluacionesCount': 24,
-      },
-      {
-        'id': 'finca_3',
-        'fincaNombre': 'Agropecuaria San Jeró...',
-        'ubicacion': 'Guanare, Portuguesa • Venezuela',
-        'fecha': 'Hoy, 10:15',
-        'evaluador': 'Jose (Evaluador)',
-        'icon': Icons.landscape_rounded,
-        'hasEvaluaciones': false,
-        'evaluacionesCount': 0,
-      },
-    ];
-  }
-
   String _formatTimestamp(dynamic ts) {
-    if (ts == null) return '24/09/2026 - 13:11';
+    if (ts == null) return 'Fecha no registrada';
     if (ts is Timestamp) {
       final dt = ts.toDate();
       return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year} - ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+    }
+    if (ts is DateTime) {
+      return '${ts.day.toString().padLeft(2, '0')}/${ts.month.toString().padLeft(2, '0')}/${ts.year} - ${ts.hour.toString().padLeft(2, '0')}:${ts.minute.toString().padLeft(2, '0')}';
     }
     return ts.toString();
   }
@@ -302,8 +274,12 @@ class _IndiceScreenState extends State<IndiceScreen> {
     }).toList();
 
     // Counts
-    final totalFincasCount = _fincasSesiones.length;
-    final totalSesionesCount = 6;
+    final totalFincasCount = _fincasSesiones
+        .map((f) => f['fincaNombre'].toString())
+        .where((name) => name.isNotEmpty && name != 'Predio sin asignar')
+        .toSet()
+        .length;
+    final totalSesionesCount = _fincasSesiones.length;
     final totalCalificadosCount = _fincasSesiones.fold<int>(
       0,
       (sum, item) => sum + ((item['evaluacionesCount'] as int?) ?? 0),
@@ -348,12 +324,44 @@ class _IndiceScreenState extends State<IndiceScreen> {
                               _buildStatsCountersRow(
                                 totalFincasCount,
                                 totalSesionesCount,
-                                totalCalificadosCount > 0 ? totalCalificadosCount : 142,
+                                totalCalificadosCount,
                               ),
                               const SizedBox(height: 18),
 
                               // LIST OF FARM ACCORDION CARDS
-                              ...filteredFincas.map((finca) => _buildFincaCard(finca)),
+                              if (filteredFincas.isEmpty)
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(28),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                                  ),
+                                  child: const Column(
+                                    children: [
+                                      Icon(Icons.agriculture_outlined, size: 44, color: Color(0xFF94A3B8)),
+                                      SizedBox(height: 12),
+                                      Text(
+                                        "No hay predios ni evaluaciones registradas.",
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                          color: Color(0xFF192A20),
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      SizedBox(height: 6),
+                                      Text(
+                                        "Crea una nueva sesión en el módulo EPMURAS para registrar predios y evaluar animales.",
+                                        style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              else
+                                ...filteredFincas.map((finca) => _buildFincaCard(finca)),
                               const SizedBox(height: 80), // Extra space for FAB
                             ],
                           ),
@@ -1049,7 +1057,7 @@ class _IndiceScreenState extends State<IndiceScreen> {
                       style: TextStyle(fontSize: 10.5, color: Color(0xFF64748B)),
                     ),
                     Text(
-                      datos['unidad'] ?? 'La Fundación',
+                      datos['unidad'] ?? 'No especificada',
                       style: const TextStyle(
                         fontSize: 12.5,
                         fontWeight: FontWeight.bold,
@@ -1062,7 +1070,7 @@ class _IndiceScreenState extends State<IndiceScreen> {
                       style: TextStyle(fontSize: 10.5, color: Color(0xFF64748B)),
                     ),
                     Text(
-                      datos['municipio'] ?? 'Ospino',
+                      datos['municipio'] ?? 'No especificado',
                       style: const TextStyle(
                         fontSize: 12.5,
                         fontWeight: FontWeight.bold,
@@ -1081,7 +1089,7 @@ class _IndiceScreenState extends State<IndiceScreen> {
                       style: TextStyle(fontSize: 10.5, color: Color(0xFF64748B)),
                     ),
                     Text(
-                      datos['capacidad'] ?? '420 UA',
+                      datos['capacidad'] ?? 'N/A',
                       style: const TextStyle(
                         fontSize: 12.5,
                         fontWeight: FontWeight.bold,

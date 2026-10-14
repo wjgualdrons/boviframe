@@ -88,10 +88,7 @@ class _ConsultaFincaScreenState extends State<ConsultaFincaScreen> {
         }
       }
 
-      var list = mapa.values.toList();
-      if (list.isEmpty) {
-        list = _getMockFincas();
-      }
+      final list = mapa.values.toList();
 
       if (!mounted) return;
       setState(() {
@@ -102,40 +99,11 @@ class _ConsultaFincaScreenState extends State<ConsultaFincaScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _allFincas = _getMockFincas();
-        _filteredFincas = List.from(_allFincas);
+        _allFincas = [];
+        _filteredFincas = [];
         _loading = false;
       });
     }
-  }
-
-  List<Map<String, dynamic>> _getMockFincas() {
-    return [
-      {
-        'unidad_produccion': 'Hacienda La Fundación',
-        'ubicacion': 'Sector El Carmen • Ospino, Portuguesa',
-        'municipio': 'Ospino',
-        'sesiones': [
-          {'session_id': 's1', 'numero_sesion': 'Manga Lote #01'},
-          {'session_id': 's2', 'numero_sesion': 'Manga Lote #02'},
-        ],
-      },
-      {
-        'unidad_produccion': 'Finca El Socorro',
-        'ubicacion': 'Vía Guanare • Barinas',
-        'municipio': 'Barinas',
-        'sesiones': [
-          {'session_id': 's3', 'numero_sesion': 'Lote Vacas 2025'},
-        ],
-      },
-      {
-        'unidad_produccion': 'Agropecuaria San Jerónimo',
-        'unidad_produccion_code': 'ASJ-40',
-        'ubicacion': 'Sabana Dulce • Portuguesa',
-        'municipio': 'Guanare',
-        'sesiones': [],
-      },
-    ];
   }
 
   void _applyFilters() {

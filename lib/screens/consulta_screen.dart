@@ -240,7 +240,9 @@ class _ConsultaScreenState extends State<ConsultaScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Top Toggle Pills
-                Row(
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
                   children: [
                     GestureDetector(
                       onTap: () {
@@ -261,6 +263,7 @@ class _ConsultaScreenState extends State<ConsultaScreen> {
                           ),
                         ),
                         child: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Container(
                               width: 6,
@@ -284,7 +287,6 @@ class _ConsultaScreenState extends State<ConsultaScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
                     GestureDetector(
                       onTap: () {
                         setState(() => _isBusquedaRapida = false);
@@ -301,6 +303,7 @@ class _ConsultaScreenState extends State<ConsultaScreen> {
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: const [
                             Text(
                               "FILTROS AVANZADOS",
@@ -400,7 +403,7 @@ class _ConsultaScreenState extends State<ConsultaScreen> {
                 ),
                 SizedBox(height: 2),
                 Text(
-                  "Arete RFID #4921 • Hda...",
+                  "Sin búsquedas recientes",
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.bold,

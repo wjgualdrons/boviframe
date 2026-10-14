@@ -221,7 +221,7 @@ class _DatosProductorScreenState extends State<DatosProductorScreen> {
                       _buildStyledTextField(
                         controller: _unidadController,
                         label: 'Unidad de Producción / Finca',
-                        hint: 'Ej: Hacienda La Fundación',
+                        hint: 'Ej: Finca El Mirador',
                         icon: Icons.agriculture_rounded,
                       ),
                       const SizedBox(height: 16),

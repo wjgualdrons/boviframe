@@ -75,11 +75,6 @@ class _ConsultaAnimalScreenState extends State<ConsultaAnimalScreen> {
         }
       }
 
-      // Si no hay datos reales aún, cargamos demostración con animales
-      if (docsTotales.isEmpty) {
-        docsTotales = _getMockAnimales();
-      }
-
       if (!mounted) return;
       setState(() {
         _todosLosDocs = docsTotales;
@@ -89,52 +84,11 @@ class _ConsultaAnimalScreenState extends State<ConsultaAnimalScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _todosLosDocs = _getMockAnimales();
-        _resultados = List.from(_todosLosDocs);
+        _todosLosDocs = [];
+        _resultados = [];
         _loading = false;
       });
     }
-  }
-
-  List<Map<String, dynamic>> _getMockAnimales() {
-    return [
-      {
-        'numero': '4921',
-        'registro': 'RGN-8842',
-        'sexo': 'Macho',
-        'estado_animal': 'Excelente',
-        'raza': 'Angus Pardo',
-        'edad': '26 meses',
-        'rfid': '*921',
-        'badge': 'Elite 94 pts',
-        'image': 'assets/img/vaca.jpg',
-        'epmuras': {'E': 5, 'P': 6, 'M': 5, 'U': 4, 'R': 6, 'A': 5, 'S': 6},
-      },
-      {
-        'numero': '3108',
-        'registro': 'RGN-1054',
-        'sexo': 'Hembra',
-        'estado_animal': 'Excelente',
-        'raza': 'Brahman Blanco',
-        'edad': '32 meses',
-        'rfid': '*534',
-        'badge': 'Destacada',
-        'image': 'assets/img/vaca3.jpg',
-        'epmuras': {'E': 5, 'P': 5, 'M': 4, 'U': 5, 'R': 5, 'A': 4, 'S': 5},
-      },
-      {
-        'numero': '1052',
-        'registro': 'RGN-3301',
-        'sexo': 'Hembra',
-        'estado_animal': 'Destacada',
-        'raza': 'Gyr Lechero',
-        'edad': '18 meses',
-        'rfid': '*108',
-        'badge': 'Muy Buena',
-        'image': 'assets/img/vaca2.jpg',
-        'epmuras': {'E': 4, 'P': 5, 'M': 5, 'U': 4, 'R': 4, 'A': 5, 'S': 4},
-      },
-    ];
   }
 
   void _filtrarAnimales(String query) {
@@ -381,11 +335,11 @@ class _ConsultaAnimalScreenState extends State<ConsultaAnimalScreen> {
         ? animal['epmuras']
         : {'E': 5, 'P': 6, 'M': 5, 'U': 4, 'R': 6, 'A': 5, 'S': 6};
 
-    final numArete = animal['numero'] ?? '4921';
-    final reg = animal['registro'] ?? 'RGN-8842';
-    final raza = animal['raza'] ?? 'Angus Pardo';
-    final rfid = animal['rfid'] ?? '*921';
-    final badge = animal['badge'] ?? 'Elite 94 pts';
+    final numArete = animal['numero'] ?? 'S/N';
+    final reg = animal['registro'] ?? 'S/R';
+    final raza = animal['raza'] ?? 'Bovino';
+    final rfid = animal['rfid'] ?? 'S/RFID';
+    final badge = animal['badge'] ?? animal['estado_animal'] ?? 'Evaluado';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -429,12 +383,15 @@ class _ConsultaAnimalScreenState extends State<ConsultaAnimalScreen> {
                     children: [
                       Row(
                         children: [
-                          Text(
-                            "Ejemplar #$numArete",
-                            style: const TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF192A20),
+                          Flexible(
+                            child: Text(
+                              "Ejemplar #$numArete",
+                              style: const TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF192A20),
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           const SizedBox(width: 6),
@@ -459,6 +416,8 @@ class _ConsultaAnimalScreenState extends State<ConsultaAnimalScreen> {
                       Text(
                         "$raza • $reg • RFID: $rfid",
                         style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
@@ -486,34 +445,36 @@ class _ConsultaAnimalScreenState extends State<ConsultaAnimalScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: epm.entries.map((e) {
-                    return Container(
-                      width: 38,
-                      padding: const EdgeInsets.symmetric(vertical: 5),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF0FDF4),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFFBBF7D0)),
-                      ),
-                      child: Column(
-                        children: [
-                          Text(
-                            e.key,
-                            style: const TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF64748B),
+                    return Expanded(
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 2),
+                        padding: const EdgeInsets.symmetric(vertical: 5),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF0FDF4),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFBBF7D0)),
+                        ),
+                        child: Column(
+                          children: [
+                            Text(
+                              e.key,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF64748B),
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            "${e.value}",
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF166534),
+                            const SizedBox(height: 2),
+                            Text(
+                              "${e.value}",
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF166534),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     );
                   }).toList(),

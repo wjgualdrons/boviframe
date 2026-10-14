@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:boviframe/widgets/confirm_dialog.dart';
@@ -42,8 +42,8 @@ class _EditSessionScreenState extends State<EditSessionScreen> {
   Future<void> _deleteEvaluation(String docId) async {
     final ok = await confirmDialog(
       context,
-      title: 'Â¿Borrar evaluaciÃ³n?',
-      content: 'Esto eliminarÃ¡ esta evaluaciÃ³n de forma permanente.',
+      title: '¿Borrar evaluación?',
+      content: 'Esto eliminará esta evaluación de forma permanente.',
     );
     if (!ok) return;
 
@@ -72,15 +72,15 @@ class _EditSessionScreenState extends State<EditSessionScreen> {
     await LocalFirestore.instance.collection('sesiones').doc(widget.sessionId).update({'estado': nuevo});
     setState(() => _sessionData!['estado'] = nuevo);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(nuevo == 'cerrada' ? 'SesiÃ³n cerrada.' : 'SesiÃ³n reabierta.')),
+      SnackBar(content: Text(nuevo == 'cerrada' ? 'Sesión cerrada.' : 'Sesión reabierta.')),
     );
   }
 
   Future<void> _deleteSession() async {
     final ok = await confirmDialog(
       context,
-      title: 'Â¿Eliminar sesiÃ³n?',
-      content: 'Esto eliminarÃ¡ la sesiÃ³n y todas sus evaluaciones.',
+      title: '¿Eliminar sesión?',
+      content: 'Esto eliminará la sesión y todas sus evaluaciones.',
     );
     if (!ok) return;
 
@@ -90,7 +90,7 @@ class _EditSessionScreenState extends State<EditSessionScreen> {
     await LocalFirestore.instance.collection('sesiones').doc(widget.sessionId).delete();
 
     Navigator.of(context).pop();
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('SesiÃ³n eliminada.')));
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sesión eliminada.')));
   }
 
   @override
@@ -103,7 +103,7 @@ class _EditSessionScreenState extends State<EditSessionScreen> {
       appBar: AppBar(
         iconTheme: const IconThemeData(color: Colors.white),
 
-        title: const Text('Editar SesiÃ³n', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text('Editar Sesión', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.blue[800],
         centerTitle: true,
         elevation: 4,
@@ -130,7 +130,7 @@ class _EditSessionScreenState extends State<EditSessionScreen> {
                         children: [
                           const SizedBox(height: 8),
                           Text('Unidad: ${_producerData!['unidad_produccion'] ?? '-'}'),
-                          Text('UbicaciÃ³n: ${_producerData!['ubicacion'] ?? '-'}'),
+                          Text('Ubicación: ${_producerData!['ubicacion'] ?? '-'}'),
                           Text('Estado: ${_producerData!['estado'] ?? '-'}'),
                           Text('Municipio: ${_producerData!['municipio'] ?? '-'}'),
                         ],
@@ -177,7 +177,7 @@ class _EditSessionScreenState extends State<EditSessionScreen> {
                                     ),
                                   )
                                 : Image.asset('assets/icons/logo1.png', width: 40, height: 40),
-                            title: Text('NÂ° ${data['numero'] ?? '-'}'),
+                            title: Text('N° ${data['numero'] ?? '-'}'),
                             subtitle: Text('RGN ${data['registro'] ?? '-'}'),
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
@@ -222,7 +222,7 @@ class _EditSessionScreenState extends State<EditSessionScreen> {
                     elevation: 2,
                   ),
                   child: Text(
-                    _sessionData?['estado'] == 'cerrada' ? 'Reabrir sesiÃ³n' : 'Cerrar sesiÃ³n',
+                    _sessionData?['estado'] == 'cerrada' ? 'Reabrir sesión' : 'Cerrar sesión',
                     style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                 ),
@@ -237,7 +237,7 @@ class _EditSessionScreenState extends State<EditSessionScreen> {
                     elevation: 2,
                   ),
                   child: const Text(
-                    'Eliminar sesiÃ³n',
+                    'Eliminar sesión',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                 ),

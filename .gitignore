@@ -59,3 +59,4 @@ cert.pem
 lib/firebase_options.dart
 .vercel
 .env*
+assets/icons/logo31.png

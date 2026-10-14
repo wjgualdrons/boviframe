@@ -379,65 +379,79 @@ class _NewSessionScreenState extends State<NewSessionScreen> {
     return Row(
       children: [
         // Step 1 Badge
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-          decoration: BoxDecoration(
-            color: const Color(0xFFDCFCE7),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: const Row(
-            children: [
-              Icon(Icons.check_circle, color: Color(0xFF166534), size: 16),
-              SizedBox(width: 6),
-              Text(
-                "1. Predio y Productor",
-                style: TextStyle(
-                  color: Color(0xFF166534),
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
+        Flexible(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+            decoration: BoxDecoration(
+              color: const Color(0xFFDCFCE7),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.check_circle, color: Color(0xFF166534), size: 16),
+                SizedBox(width: 4),
+                Flexible(
+                  child: Text(
+                    "1. Predio y Productor",
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Color(0xFF166534),
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
         Container(
-          width: 20,
+          width: 14,
           height: 2,
           color: const Color(0xFFCBD5E1),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
         // Step 2 Badge
-        Row(
-          children: [
-            Container(
-              width: 20,
-              height: 20,
-              decoration: const BoxDecoration(
-                color: Color(0xFF192A20),
-                shape: BoxShape.circle,
+        Flexible(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 18,
+                height: 18,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF192A20),
+                  shape: BoxShape.circle,
+                ),
+                child: const Center(
+                  child: Text(
+                    "2",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
               ),
-              child: const Center(
+              const SizedBox(width: 4),
+              const Flexible(
                 child: Text(
-                  "2",
+                  "Evaluación Morfológica",
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
+                    color: Color(0xFF192A20),
+                    fontSize: 11.5,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
-            ),
-            const SizedBox(width: 6),
-            const Text(
-              "Evaluación Morfométrica",
-              style: TextStyle(
-                color: Color(0xFF192A20),
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
     );
@@ -556,7 +570,7 @@ class _NewSessionScreenState extends State<NewSessionScreen> {
                 // Field 1: Unidad de Producción / Finca
                 _buildCompactField(
                   controller: _unidadController,
-                  hint: "Unidad de Producción / Finca (Ej: Hda. La Fundación)",
+                  hint: "Unidad de Producción / Finca (Ej: Hda. San José)",
                   icon: Icons.agriculture_rounded,
                 ),
                 const SizedBox(height: 10),
@@ -798,28 +812,32 @@ class _NewSessionScreenState extends State<NewSessionScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
                 elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
               ),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    "Ingresar a Calificación en Brete",
-                    style: TextStyle(
-                      color: Color(0xFF1C4331),
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
+              child: const FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      "Ingresar a Calificación en Brete",
+                      style: TextStyle(
+                        color: Color(0xFF1C4331),
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                  SizedBox(width: 8),
-                  Icon(
-                    Icons.arrow_forward_rounded,
-                    color: Color(0xFF1C4331),
-                    size: 20,
-                  ),
-                ],
+                    SizedBox(width: 6),
+                    Icon(
+                      Icons.arrow_forward_rounded,
+                      color: Color(0xFF1C4331),
+                      size: 19,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

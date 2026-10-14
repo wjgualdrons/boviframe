@@ -43,13 +43,12 @@ class PdfService {
 
     // 3) Consultar productor y evaluador si existen en la sesión
     final sid = (data['sessionId'] as String?) ?? (data['session_id'] as String?) ?? '';
-    String farmName = 'Agropecuaria La Esperanza, Lote 2024-B';
-    String farmLoc = 'Ospino, Estado Portuguesa • Venezuela';
-    String evaluatorName = 'MV Gualdron Willians';
-    String evaluatorCollegiate = 'MP 4.892';
-
     final currentUser = FirebaseAuth.instance.currentUser;
-    String evaluatorEmail = currentUser?.email ?? 'mv.gualdron.willians@gmail.com';
+    String farmName = 'Predio no especificado';
+    String farmLoc = 'Ubicación no especificada';
+    String evaluatorName = currentUser?.displayName ?? 'Evaluador Autorizado';
+    String evaluatorCollegiate = '-';
+    String evaluatorEmail = currentUser?.email ?? '-';
 
     if (sid.isNotEmpty) {
       try {
@@ -155,10 +154,10 @@ class PdfService {
               // 6. Pie de Firma Oficial, QR de Auditoría Blockchain y Sellos
               _buildAuditAndSignature(
                 animal: animal,
-                vetName: veterinarianName ?? 'MV Gualdron Willians',
-                vetCollegiate: collegiateNumber ?? 'MP 4.892',
-                farm: farmName ?? 'Agropecuaria La Esperanza, Lote 2024-B',
-                loc: location ?? 'Ospino, Estado Portuguesa • Venezuela',
+                vetName: veterinarianName ?? 'Evaluador Autorizado',
+                vetCollegiate: collegiateNumber ?? '-',
+                farm: farmName ?? 'Predio no especificado',
+                loc: location ?? 'Ubicación no especificada',
                 fontBold: fontBold,
                 contactEmail: veterinarianEmail,
               ),
@@ -1297,14 +1296,14 @@ class PdfService {
 
   // Helper para mapear Map<String, dynamic> -> AnimalEvaluationData
   static AnimalEvaluationData _mapDataToAnimalEvaluationData(Map<String, dynamic> data, [Map<String, double>? epmProm]) {
-    final numero = data['numero']?.toString() ?? '4921';
-    final registro = data['registro']?.toString() ?? 'RGN-8842';
-    final raza = data['raza']?.toString() ?? 'Nelore Padrón';
-    final sexo = data['sexo']?.toString() ?? 'Macho Reproductor';
-    final estado = data['estado']?.toString() ?? data['estado_animal']?.toString() ?? 'Excelente / En Servicio';
-    final rfid = data['rfid']?.toString() ?? '982.000184921';
-    final lote = data['nombre_lote']?.toString() ?? data['lote']?.toString() ?? 'Lote 2024–B';
-    final fechaNac = data['fecha_nac']?.toString() ?? '14/03/2021';
+    final numero = data['numero']?.toString() ?? 'S/N';
+    final registro = data['registro']?.toString() ?? 'S/R';
+    final raza = data['raza']?.toString() ?? 'Bovino';
+    final sexo = data['sexo']?.toString() ?? 'No especificado';
+    final estado = data['estado']?.toString() ?? data['estado_animal']?.toString() ?? 'Activo';
+    final rfid = data['rfid']?.toString() ?? 'Sin RFID';
+    final lote = data['nombre_lote']?.toString() ?? data['lote']?.toString() ?? 'Sin Lote';
+    final fechaNac = data['fecha_nac']?.toString() ?? '-';
     final pesoNac = double.tryParse(data['peso_nac']?.toString() ?? '38') ?? 38.0;
     final pesoDest = double.tryParse(data['peso_dest']?.toString() ?? '235') ?? 235.0;
     final pesoAjus = double.tryParse(data['peso_ajus']?.toString() ?? '480') ?? 480.0;
@@ -1365,7 +1364,7 @@ class PdfService {
       registryNumber: registro,
       breed: raza,
       categoryType: data['categoria']?.toString() ?? 'Hato Donante Fundador',
-      genealogyNote: 'Genealogía Consolidada (P: ${data['padre'] ?? 'Don Capi'} • M: ${data['madre'] ?? 'Reina'})',
+      genealogyNote: 'Genealogía Consolidada (P: ${data['padre'] ?? 'No registrado'} • M: ${data['madre'] ?? 'No registrada'})',
       rfidChip: rfid,
       lotName: lote,
       contemporaryGroup: 'GC-04',

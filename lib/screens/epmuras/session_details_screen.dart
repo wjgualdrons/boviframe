@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:boviframe/services/local_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../widgets/custom_app_scaffold.dart';
@@ -72,7 +72,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('Esta sesiÃ³n ya estÃ¡ cerrada.'),
+                                content: Text('Esta sesión ya está cerrada.'),
                               ),
                             );
                           }
