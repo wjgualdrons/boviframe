@@ -12,7 +12,7 @@ class EpmurasScreen extends StatefulWidget {
 
 class _EpmurasScreenState extends State<EpmurasScreen> {
   bool _isCreatingSession = false;
-  String _activeSessionText = "Manga Lote #03 • 18 calificados";
+  String _activeSessionText = "Sin sesiones registradas";
 
   @override
   void initState() {
@@ -31,10 +31,16 @@ class _EpmurasScreenState extends State<EpmurasScreen> {
           .get();
 
       if (snapshot.docs.isNotEmpty) {
-        final lastDoc = snapshot.docs.last.data();
+        final lastDocSnapshot = snapshot.docs.last;
+        final lastDoc = lastDocSnapshot.data();
         final numSesion = lastDoc['numero_sesion'] ?? 'Lote #${snapshot.docs.length}';
+        final evalsSnap = await lastDocSnapshot.reference
+            .collection('evaluaciones_animales')
+            .get();
+        final count = evalsSnap.docs.length;
         setState(() {
-          _activeSessionText = "$numSesion • ${snapshot.docs.length * 6} calificados";
+          _activeSessionText =
+              "$numSesion • $count calificado${count == 1 ? '' : 's'}";
         });
       }
     } catch (_) {}

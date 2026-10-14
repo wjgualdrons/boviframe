@@ -15,8 +15,8 @@ class NewSessionScreen extends StatefulWidget {
 
 class _NewSessionScreenState extends State<NewSessionScreen> {
   late Future<int> _futureNumeroSesion;
-  int _evaluadosCount = 6;
-  int _porCalificarCount = 18;
+  int _evaluadosCount = 0;
+  int _porCalificarCount = 0;
   bool _mostrarCriterios = false;
 
   // Farm Data Form Controllers
@@ -117,7 +117,7 @@ class _NewSessionScreenState extends State<NewSessionScreen> {
 
       setState(() {
         _evaluadosCount = evalsSnap.docs.length;
-        _porCalificarCount = 24 - _evaluadosCount > 0 ? 24 - _evaluadosCount : 0;
+        _porCalificarCount = 0;
       });
     } catch (_) {}
   }
@@ -769,7 +769,7 @@ class _NewSessionScreenState extends State<NewSessionScreen> {
             children: [
               Expanded(
                 child: _buildCounterBox(
-                  count: "$_porCalificarCount",
+                  count: _porCalificarCount.toString().padLeft(2, '0'),
                   label: "Por calificar",
                 ),
               ),
@@ -783,7 +783,7 @@ class _NewSessionScreenState extends State<NewSessionScreen> {
               const SizedBox(width: 10),
               Expanded(
                 child: _buildCounterBox(
-                  count: "24",
+                  count: _evaluadosCount.toString().padLeft(2, '0'),
                   label: "Lote Total",
                   highlight: true,
                 ),
